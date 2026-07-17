@@ -1,0 +1,52 @@
+# Local Windows/Anaconda environment for the hose recognition project.
+#
+# The handoff requirements pin numpy==1.24.4, while
+# opencv-python>=4.10 Windows wheels are built against NumPy 2.x and create
+# an incompatible ndarray ABI when this project is pinned to NumPy 1.24.4.
+# OpenCV 4.9 is the newest verified wheel using the NumPy 1.x ABI here.
+# Install PyTorch separately with:
+# conda install --solver libmamba --override-channels -n hosebot_cv
+#   pytorch==2.1.1 torchvision==0.16.1 pytorch-cuda=11.8
+#   -c pytorch -c nvidia -c defaults
+
+absl-py==2.3.1
+addict==2.4.0
+cachetools==5.5.2
+certifi==2025.8.3
+charset-normalizer==3.4.3
+colorama==0.4.6
+fsspec==2024.6.1
+google-auth==2.40.3
+google-auth-oauthlib==1.0.0
+grpcio==1.70.0
+idna==3.10
+importlib_metadata==8.5.0
+joblib==1.4.2
+Markdown==3.7
+MarkupSafe==2.1.5
+numpy==1.24.4
+oauthlib==3.3.1
+onnx==1.15.0
+onnxruntime-gpu==1.17.1
+opencv-python==4.9.0.80
+packaging==25.0
+pathspec==0.12.1
+pillow==10.4.0
+protobuf==5.29.5
+psutil==5.9.8
+pyasn1==0.6.1
+pyasn1_modules==0.4.2
+requests==2.32.4
+requests-oauthlib==2.0.0
+rsa==4.9.1
+scikit-learn==1.3.2
+scipy==1.10.1
+six==1.17.0
+tensorboard==2.14.0
+tensorboard-data-server==0.7.2
+threadpoolctl==3.5.0
+tqdm==4.67.1
+typing_extensions==4.13.2
+urllib3==2.2.3
+Werkzeug==3.0.6
+zipp==3.20.2

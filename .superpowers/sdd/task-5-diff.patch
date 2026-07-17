@@ -1,0 +1,1666 @@
+﻿TASK 5 REVIEW PACKAGE
+Base: Task 4 approved snapshots
+Head: current working tree after browser-smoke remediation
+
+Changed files:
+- low_light_dataset/review_service.py
+- tests/test_review_service.py
+- low_light_dataset/review_web/index.html
+- low_light_dataset/review_web/app.js
+- low_light_dataset/review_web/styles.css
+
+--- review_service.py ---
+diff --git a/.superpowers/sdd/task-5-before-review_service.py b/low_light_dataset/review_service.py
+index 675f89d..a5fa43f 100644
+--- a/.superpowers/sdd/task-5-before-review_service.py
++++ b/low_light_dataset/review_service.py
+@@ -207,6 +207,29 @@ def _resolved_direct_child(directory: Path, name: str) -> Path:
+     return path
+ 
+ 
++def _same_anchor_geometry(
++    first: Any,
++    second: Any,
++    tolerance: float = 1e-6,
++) -> bool:
++    """Compare only serialized y/x geometry, never model confidence or source."""
++
++    if not isinstance(first, list) or not isinstance(second, list):
++        return False
++    if len(first) != len(second):
++        return False
++    for left, right in zip(first, second):
++        if not isinstance(left, dict) or not isinstance(right, dict):
++            return False
++        if not all(_is_finite_number(item.get(axis)) for item in (left, right) for axis in ("y", "x")):
++            return False
++        if abs(float(left["y"]) - float(right["y"])) > tolerance:
++            return False
++        if abs(float(left["x"]) - float(right["x"])) > tolerance:
++            return False
++    return True
++
++
+ class ReviewApplication:
+     """Directly testable WSGI application returned by :func:`create_app`.
+ 
+@@ -225,7 +248,11 @@ class ReviewApplication:
+         self.work_root = Path(work_root)
+         if _path_is_within(self.work_root, self.candidate_root):
+             raise ValueError("work_root must not be inside candidate_root")
+-        self.static_root = Path(static_root) if static_root is not None else None
++        self.static_root = (
++            Path(static_root)
++            if static_root is not None
++            else Path(__file__).resolve().with_name("review_web")
++        )
+         self.manifest_path = self.candidate_root / "manifest.csv"
+         self.manifest_records = _load_manifest_rows(self.manifest_path)
+         _validate_manifest_stems(self.manifest_records)
+@@ -249,6 +276,7 @@ class ReviewApplication:
+         self._preview_locks = {stem: threading.Lock() for stem in self._ordered_stems}
+         self.url_map = Map(
+             [
++                Rule("/", endpoint="index", methods=["GET"]),
+                 Rule("/health", endpoint="health", methods=["GET"]),
+                 Rule("/api/summary", endpoint="summary", methods=["GET"]),
+                 Rule("/api/records", endpoint="records", methods=["GET"]),
+@@ -289,6 +317,8 @@ class ReviewApplication:
+             return _error("method_not_allowed", 405)
+ 
+         try:
++            if endpoint == "index":
++                return self._static("index.html")
+             if endpoint == "health":
+                 summary = self.review_store.summary()
+                 return _json_response(
+@@ -406,6 +436,12 @@ class ReviewApplication:
+         if action == "second_review":
+             patch["second_review_required"] = True
+             patch["second_reviewed_at"] = now
++        suggestion = self.preannotations.get(stem)
++        if "anchors" in patch and suggestion is not None:
++            suggestion_anchors = suggestion.get("anchors")
++            patch["suggestion_modified"] = bool(before.suggestion_modified) or not (
++                _same_anchor_geometry(patch["anchors"], suggestion_anchors)
++            )
+ 
+         try:
+             after = self.review_store.update(
+@@ -595,14 +631,23 @@ class ReviewApplication:
+                 json_temporary.unlink(missing_ok=True)
+ 
+     def _static(self, name: str) -> Response:
+-        if self.static_root is None:
+-            return _error("not_found", 404)
+         if not name or Path(name).name != name or "/" in name or "\\" in name:
+             return _error("not_found", 404)
+-        path = self.static_root / name
+-        if not path.is_file() or path.resolve().parent != self.static_root.resolve():
++        try:
++            path = _resolved_direct_child(self.static_root, name)
++        except (OSError, ValueError):
++            return _error("not_found", 404)
++        if not path.is_file():
+             return _error("not_found", 404)
+-        mimetype = mimetypes.guess_type(name)[0] or "application/octet-stream"
++        deterministic_types = {
++            ".html": "text/html",
++            ".js": "text/javascript",
++            ".css": "text/css",
++        }
++        mimetype = deterministic_types.get(
++            path.suffix.lower(),
++            mimetypes.guess_type(name)[0] or "application/octet-stream",
++        )
+         return Response(path.read_bytes(), content_type=mimetype)
+ 
+ 
+
+--- test_review_service.py ---
+diff --git a/.superpowers/sdd/task-5-before-test_review_service.py b/tests/test_review_service.py
+index c807213..dd620a5 100644
+--- a/.superpowers/sdd/task-5-before-test_review_service.py
++++ b/tests/test_review_service.py
+@@ -28,6 +28,42 @@ FINAL_ANCHORS = [
+     {"y": 340, "x": 360.0, "confidence": 1.0, "source": "human"},
+ ]
+ 
++REQUIRED_UI_IDS = (
++    "hose-canvas",
++    "preview-toggle",
++    "previous-frame",
++    "next-frame",
++    "mark-positive",
++    "mark-hard-negative",
++    "mark-excluded",
++    "mark-needs-review",
++    "undo",
++    "redo",
++    "clear-anchors",
++    "save-status",
++    "status-filter",
++    "event-filter",
++    "warning-filter",
++    "record-select",
++    "interference-tags",
++    "exclusion-reason",
++    "notes",
++    "warnings",
++    "current-stem",
++    "current-timestamp",
++    "previous-timestamp",
++    "next-timestamp",
++    "revision-indicator",
++    "save-result",
++    "summary-counts",
++    "classification-preview",
++    "previous-thumbnail",
++    "current-thumbnail",
++    "next-thumbnail",
++)
++
++SAFETY_BANNER = "增强图仅辅助观察，导出始终使用原图"
++
+ 
+ class ReviewServiceFixture(unittest.TestCase):
+     def setUp(self):
+@@ -227,6 +263,283 @@ class RouteTests(ReviewServiceFixture):
+         self.assertEqual(outside.read_bytes(), outside_before)
+ 
+ 
++class BrowserUIContractTests(ReviewServiceFixture):
++    def packaged_script(self):
++        app = create_app(self.candidate_root, self.root / "contract-work")
++        return Client(app, Response).get("/static/app.js").get_data(as_text=True)
++
++    def test_summary_api_counts_are_the_primary_ui_status_mapping(self):
++        summary = self.client.get("/api/summary").get_json()
++        self.assertEqual(summary["total"], 3)
++        self.assertEqual(summary["counts"]["unreviewed"], 3)
++        self.assertEqual(summary["counts"]["needs_second_review"], 0)
++
++        script = self.packaged_script()
++        summary_start = script.index("function renderSummary(summary)")
++        summary_end = script.index("async function refreshLists", summary_start)
++        summary_block = script[summary_start:summary_end]
++        self.assertIn(
++            "summary.counts || summary.status_counts || summary.by_status || {}",
++            summary_block,
++        )
++
++    def test_index_assets_and_exact_dom_contract_are_served(self):
++        index_path = self.static_root / "index.html"
++        index_path.write_text(
++            "<!doctype html><html><body>" + SAFETY_BANNER
++            + "".join(f'<span id="{item}"></span>' for item in REQUIRED_UI_IDS)
++            + '<canvas id="hose-canvas" width="640" height="480"></canvas>'
++            + '<link rel="stylesheet" href="/static/styles.css">'
++            + '<script defer src="/static/app.js"></script></body></html>',
++            encoding="utf-8",
++        )
++        (self.static_root / "styles.css").write_text("body {}", encoding="utf-8")
++
++        response = self.client.get("/")
++
++        self.assertEqual(response.status_code, 200)
++        self.assertEqual(response.mimetype, "text/html")
++        self.assertEqual(response.data, index_path.read_bytes())
++        html = response.get_data(as_text=True)
++        for element_id in REQUIRED_UI_IDS:
++            with self.subTest(element_id=element_id):
++                self.assertIn(f'id="{element_id}"', html)
++        self.assertIn(SAFETY_BANNER, html)
++        self.assertIn('id="hose-canvas" width="640" height="480"', html)
++        self.assertIn('href="/static/styles.css"', html)
++        self.assertIn('defer src="/static/app.js"', html)
++        self.assertNotIn("\ufffd", html)
++        self.assertFalse(any(0xE000 <= ord(character) <= 0xF8FF for character in html))
++
++        javascript = self.client.get("/static/app.js")
++        stylesheet = self.client.get("/static/styles.css")
++        self.assertEqual(javascript.status_code, 200)
++        self.assertEqual(javascript.mimetype, "text/javascript")
++        self.assertEqual(stylesheet.status_code, 200)
++        self.assertEqual(stylesheet.mimetype, "text/css")
++
++    def test_default_packaged_static_root_and_explicit_root_are_both_supported(self):
++        default_app = create_app(
++            self.candidate_root,
++            self.root / "default-work",
++            preannotation_path=self.preannotation_path,
++        )
++        default_client = Client(default_app, Response)
++        default_index = default_client.get("/")
++        self.assertEqual(default_index.status_code, 200)
++        packaged_html = default_index.get_data(as_text=True)
++        for element_id in REQUIRED_UI_IDS:
++            with self.subTest(element_id=element_id):
++                self.assertIn(f'id="{element_id}"', packaged_html)
++        self.assertIn(SAFETY_BANNER, packaged_html)
++        self.assertIn('id="hose-canvas" width="640" height="480"', packaged_html)
++        self.assertEqual(default_client.get("/static/app.js").status_code, 200)
++        self.assertEqual(default_client.get("/static/styles.css").status_code, 200)
++
++        explicit_index = self.static_root / "index.html"
++        explicit_index.write_bytes(b"<!doctype html><title>explicit</title>")
++        response = self.client.get("/")
++        self.assertEqual(response.status_code, 200)
++        self.assertEqual(response.data, explicit_index.read_bytes())
++
++    def test_packaged_javascript_covers_editor_saving_and_navigation_contract(self):
++        app = create_app(self.candidate_root, self.root / "javascript-work")
++        script = Client(app, Response).get("/static/app.js").get_data(as_text=True)
++
++        required_fragments = (
++            "getBoundingClientRect",
++            "Math.max(0, Math.min(639",
++            "Math.max(0, Math.min(479",
++            "SELECTION_RADIUS = 6",
++            ".sort((a, b) => a.y - b.y)",
++            "deduplicateAnchors",
++            "undoStack",
++            "redoStack",
++            "window.confirm",
++            "AUTOSAVE_DELAY_MS = 500",
++            "delete payload.first_reviewed_at",
++            "delete payload.second_reviewed_at",
++            "response.status === 409",
++            "preserveRevisionConflict",
++            "/media/original/",
++            "/media/enhanced/",
++            "previous_stem",
++            "next_stem",
++            "awaitPendingAutosave",
++        )
++        for fragment in required_fragments:
++            with self.subTest(fragment=fragment):
++                self.assertIn(fragment, script)
++        for status in ("positive", "hard_negative", "excluded", "needs_second_review"):
++            with self.subTest(status=status):
++                self.assertIn(f"confirmClassification('{status}')", script)
++        self.assertNotIn("event.key === '1'", script)
++        self.assertNotIn("event.key === '2'", script)
++        self.assertNotIn("event.key === '3'", script)
++        self.assertNotIn("event.key === '4'", script)
++
++    def test_packaged_css_keeps_canvas_visible_and_stacks_at_760_pixels(self):
++        app = create_app(self.candidate_root, self.root / "stylesheet-work")
++        css = Client(app, Response).get("/static/styles.css").get_data(as_text=True)
++        self.assertIn("aspect-ratio: 4 / 3", css)
++        self.assertIn("grid-template-columns", css)
++        self.assertIn("@media (max-width: 760px)", css)
++        self.assertIn("overflow-x: hidden", css)
++
++    def test_failed_pending_save_blocks_finalize_without_automatic_retry(self):
++        script = self.packaged_script()
++        self.assertIn("const pendingSaved = await awaitPendingAutosave()", script)
++        self.assertIn("if (!pendingSaved)", script)
++        self.assertIn("请重新点击并确认分类", script)
++        self.assertIn("let saveBlocked = false", script)
++        self.assertIn("previousSaved && !saveBlocked", script)
++        self.assertIn("saveBlocked = true", script)
++        self.assertIn("const explicitRetry = saveBlocked", script)
++        self.assertNotIn("await awaitPendingAutosave();\n    const action", script)
++        conflict_start = script.index("async function preserveRevisionConflict")
++        conflict_end = script.index("async function performSave", conflict_start)
++        self.assertNotIn("performSave(", script[conflict_start:conflict_end])
++
++    def test_inflight_save_uses_generation_and_never_overwrites_newer_edits(self):
++        script = self.packaged_script()
++        required_fragments = (
++            "let editGeneration = 0",
++            "function markLocalEdit()",
++            "editGeneration += 1",
++            "const saveGeneration = editGeneration",
++            "const saveSnapshot = captureDraft()",
++            "editGeneration === saveGeneration",
++            "newer edits remain pending",
++            "scheduleAutosave()",
++            "action !== \"draft\"",
++        )
++        for fragment in required_fragments:
++            with self.subTest(fragment=fragment):
++                self.assertIn(fragment, script)
++        guard = script.index("if (editGeneration === saveGeneration")
++        assignment = script.index("state.anchors = deduplicateAnchors(saved.anchors || []);", guard)
++        self.assertGreater(assignment, guard)
++
++    def test_pointermove_marks_generation_before_render_without_autosave_spam(self):
++        script = self.packaged_script()
++        move_start = script.index('canvas.addEventListener("pointermove"')
++        move_end = script.index("function finishDrag", move_start)
++        move_block = script[move_start:move_end]
++        self.assertIn("const geometryChanged =", move_block)
++        self.assertIn("if (!geometryChanged) return", move_block)
++        mutation = move_block.index("state.anchors = nextAnchors")
++        generation = move_block.index("markLocalEdit()")
++        render = move_block.index("renderCanvas()")
++        self.assertLess(mutation, generation)
++        self.assertLess(generation, render)
++        self.assertNotIn("scheduleAutosave()", move_block)
++
++    def test_conflict_detail_refresh_never_restores_editable_draft(self):
++        script = self.packaged_script()
++        conflict_start = script.index("async function preserveRevisionConflict")
++        conflict_end = script.index("async function performSave", conflict_start)
++        conflict_block = script[conflict_start:conflict_end]
++        self.assertIn("...safeMetadata", conflict_block)
++        self.assertIn("state.detail?.stem === stem", conflict_block)
++        self.assertNotIn("captureDraft()", conflict_block)
++        self.assertNotIn("restoreDraft(", conflict_block)
++        self.assertNotIn("populateDraftFields(", conflict_block)
++
++    def test_exclusion_reason_is_local_draft_and_payload_is_status_compatible(self):
++        script = self.packaged_script()
++        required_fragments = (
++            "SESSION_REASON_PREFIX",
++            "sessionStorage.getItem",
++            "sessionStorage.setItem",
++            "sessionStorage.removeItem",
++            "const effectiveStatus = status || state.detail.status",
++            'exclusion_reason: effectiveStatus === "excluded"',
++            "storeReasonDraft",
++            "loadReasonDraft",
++            "clearReasonDraft",
++        )
++        for fragment in required_fragments:
++            with self.subTest(fragment=fragment):
++                self.assertIn(fragment, script)
++        self.assertNotIn('exclusion_reason: byId("exclusion-reason").value || null', script)
++        self.assertIn('if (status === "excluded")', script)
++        self.assertIn("clearReasonDraft(saved.stem)", script)
++
++    def test_event_filter_queue_selection_navigation_and_preview_contracts(self):
++        default_app = create_app(self.candidate_root, self.root / "filter-contract-work")
++        default_client = Client(default_app, Response)
++        html = default_client.get("/").get_data(as_text=True)
++        script = default_client.get("/static/app.js").get_data(as_text=True)
++
++        self.assertIn('<option value="base">', html)
++        self.assertIn('<option value="event">', html)
++        self.assertNotIn('<option value="suggested">', html)
++        self.assertNotIn('<option value="human">', html)
++        required_fragments = (
++            "function recordEventKind(record)",
++            'record.source === "base"',
++            'record.source === "event"',
++            "record.event_reason",
++            "state.queue.map",
++            "const currentStillVisible",
++            "loadRecord(filtered[0].stem)",
++            'const initialStem = byId("record-select").value',
++            "let navigationToken = 0",
++            "const requestToken = ++navigationToken",
++            "requestToken !== navigationToken",
++            "byId(\"current-thumbnail\").src = mediaUrl(detail.stem, false)",
++        )
++        for fragment in required_fragments:
++            with self.subTest(fragment=fragment):
++                self.assertIn(fragment, script)
++        self.assertNotIn("state.queue[0] || state.records[0]?.stem", script)
++        background_start = script.index("function loadBackground")
++        background_end = script.index("backgroundImage.addEventListener", background_start)
++        self.assertNotIn("current-thumbnail", script[background_start:background_end])
++
++    def test_every_filter_application_invalidates_older_navigation_immediately(self):
++        script = self.packaged_script()
++        filters_start = script.index("async function applyFilters()")
++        filters_end = script.index("function renderSummary", filters_start)
++        filters_block = script[filters_start:filters_end]
++        self.assertIn("navigationToken += 1", filters_block)
++        invalidation = filters_block.index("navigationToken += 1")
++        calculation = filters_block.index('const status = byId("status-filter").value')
++        visible_branch = filters_block.index("if (currentStillVisible)")
++        empty_branch = filters_block.index("select.value = \"\"")
++        self.assertLess(invalidation, calculation)
++        self.assertLess(invalidation, visible_branch)
++        self.assertLess(invalidation, empty_branch)
++
++    def test_root_and_static_keep_exact_method_and_path_safety_contract(self):
++        (self.static_root / "index.html").write_bytes(b"safe-index")
++        (self.static_root / "styles.css").write_bytes(b"body{}")
++        for path in ("/", "/static/app.js", "/static/styles.css"):
++            for method in ("head", "options"):
++                with self.subTest(path=path, method=method):
++                    response = getattr(self.client, method)(path)
++                    self.assertEqual(response.status_code, 405)
++        for path in (
++            "/static/nested/secret.js",
++            "/static/..%2Fnested%2Fsecret.js",
++            "/static/%2e%2e%5cnested%5csecret.js",
++        ):
++            with self.subTest(path=path):
++                self.assertEqual(self.client.get(path).status_code, 404)
++
++    def test_missing_default_index_has_stable_error_without_path_leakage(self):
++        missing_root = self.root / "missing-static"
++        app = create_app(
++            self.candidate_root,
++            self.root / "missing-work",
++            static_root=missing_root,
++        )
++        response = Client(app, Response).get("/")
++        self.assertEqual(response.status_code, 404)
++        self.assertEqual(response.get_json(), {"error": "not_found"})
++        self.assertNotIn(str(missing_root), response.get_data(as_text=True))
++
++
+ class InitializationSecurityTests(unittest.TestCase):
+     def test_unsafe_manifest_stems_reject_before_candidate_access_or_state_write(self):
+         malicious_stems = (
+@@ -285,6 +598,40 @@ class InitializationSecurityTests(unittest.TestCase):
+ 
+ 
+ class PatchTests(ReviewServiceFixture):
++    def test_anchor_patch_derives_and_preserves_suggestion_modified_server_side(self):
++        exact_geometry = [
++            {"y": anchor["y"], "x": anchor["x"], "confidence": 0.25, "source": "human"}
++            for anchor in FINAL_ANCHORS
++        ]
++        exact = self.patch("frame_b", {"revision": 0, "anchors": exact_geometry})
++        self.assertEqual(exact.status_code, 200)
++        self.assertFalse(exact.get_json()["suggestion_modified"])
++        self.assertIsNone(exact.get_json()["first_reviewed_at"])
++        self.assertEqual(exact.get_json()["status"], "unreviewed")
++
++        changed_geometry = [dict(anchor) for anchor in exact_geometry]
++        changed_geometry[1] = {**changed_geometry[1], "x": 241.0}
++        changed = self.patch("frame_b", {"revision": 1, "anchors": changed_geometry})
++        self.assertEqual(changed.status_code, 200)
++        self.assertTrue(changed.get_json()["suggestion_modified"])
++
++        reverted = self.patch("frame_b", {"revision": 2, "anchors": exact_geometry})
++        self.assertEqual(reverted.status_code, 200)
++        self.assertTrue(reverted.get_json()["suggestion_modified"])
++
++    def test_client_cannot_inject_suggestion_modified_and_suggestion_never_approves(self):
++        injected = self.patch(
++            "frame_b",
++            {"revision": 0, "anchors": FINAL_ANCHORS, "suggestion_modified": True},
++        )
++        self.assertEqual(injected.status_code, 400)
++        self.assertEqual(injected.get_json(), {"error": "invalid_patch"})
++
++        untouched = self.client.get("/api/records/frame_b").get_json()
++        self.assertEqual(untouched["status"], "unreviewed")
++        self.assertIsNone(untouched["first_reviewed_at"])
++        self.assertFalse(untouched["suggestion_modified"])
++
+     def test_draft_then_finalize_sets_utc_first_timestamp_and_preserves_it(self):
+         draft = self.patch("frame_a", {"revision": 0, "notes": "draft"})
+         self.assertEqual(draft.status_code, 200)
+
+--- index.html ---
+diff --git a/low_light_dataset/review_web/index.html b/low_light_dataset/review_web/index.html
+new file mode 100644
+index 0000000..37c0275
+--- /dev/null
++++ b/low_light_dataset/review_web/index.html
+@@ -0,0 +1,147 @@
++<!doctype html>
++<html lang="zh-CN">
++<head>
++  <meta charset="utf-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1">
++  <title>水带人工复核工作台</title>
++  <link rel="stylesheet" href="/static/styles.css">
++  <script defer src="/static/app.js"></script>
++</head>
++<body>
++  <header class="app-header">
++    <div>
++      <p class="eyebrow">LOCAL REVIEW WORKBENCH</p>
++      <h1>水带人工复核</h1>
++    </div>
++    <div id="summary-counts" class="summary" aria-live="polite">正在加载汇总…</div>
++  </header>
++
++  <div class="safety-banner" role="note">增强图仅辅助观察，导出始终使用原图</div>
++
++  <main class="workspace">
++    <aside class="queue-panel panel" aria-labelledby="queue-title">
++      <h2 id="queue-title">复核队列</h2>
++      <label for="status-filter">状态</label>
++      <select id="status-filter">
++        <option value="all">全部状态</option>
++        <option value="unreviewed">未复核</option>
++        <option value="needs_second_review">需二次复核</option>
++        <option value="positive">正样本</option>
++        <option value="hard_negative">困难负样本</option>
++        <option value="excluded">排除</option>
++      </select>
++
++      <label for="event-filter">事件</label>
++      <select id="event-filter">
++        <option value="all">全部事件</option>
++        <option value="base">基础采样帧</option>
++        <option value="event">事件采样帧</option>
++      </select>
++
++      <label for="warning-filter">警告</label>
++      <select id="warning-filter">
++        <option value="all">全部</option>
++        <option value="warning">有警告</option>
++        <option value="clean">无警告</option>
++      </select>
++
++      <label for="record-select">按时间排序的记录</label>
++      <select id="record-select" size="12" aria-label="待复核记录"></select>
++    </aside>
++
++    <section class="viewer-panel panel" aria-labelledby="viewer-title">
++      <div class="viewer-heading">
++        <div>
++          <p class="eyebrow">CURRENT FRAME</p>
++          <h2 id="viewer-title"><span id="current-stem">—</span></h2>
++          <p>时间：<time id="current-timestamp">—</time></p>
++        </div>
++        <label class="toggle" for="preview-toggle">
++          <input id="preview-toggle" type="checkbox">
++          显示增强预览
++        </label>
++      </div>
++
++      <div id="canvas-editor" class="canvas-shell">
++        <canvas id="hose-canvas" width="640" height="480" tabindex="0" aria-label="水带中心线锚点编辑画布"></canvas>
++      </div>
++      <p class="legend"><span class="amber-line"></span>模型建议 <span class="red-line"></span>当前人工草稿</p>
++
++      <div class="editor-toolbar" role="toolbar" aria-label="锚点编辑">
++        <button id="undo" type="button">撤销</button>
++        <button id="redo" type="button">重做</button>
++        <button id="clear-anchors" type="button" class="danger-quiet">清空锚点</button>
++      </div>
++
++      <div class="neighbor-strip" aria-label="相邻帧">
++        <article class="neighbor-card">
++          <button id="previous-frame" type="button" aria-label="转到上一帧">上一帧</button>
++          <time id="previous-timestamp">—</time>
++          <img id="previous-thumbnail" alt="上一帧缩略图">
++        </article>
++        <article class="neighbor-card current-card">
++          <span>当前帧</span>
++          <img id="current-thumbnail" alt="当前帧缩略图">
++        </article>
++        <article class="neighbor-card">
++          <button id="next-frame" type="button" aria-label="转到下一帧">下一帧</button>
++          <time id="next-timestamp">—</time>
++          <img id="next-thumbnail" alt="下一帧缩略图">
++        </article>
++      </div>
++    </section>
++
++    <aside class="review-panel panel" aria-labelledby="review-title">
++      <div class="status-row">
++        <h2 id="review-title">人工判定</h2>
++        <span id="revision-indicator" class="revision">修订 —</span>
++      </div>
++
++      <fieldset>
++        <legend>干扰标签（困难负样本至少一项）</legend>
++        <div id="interference-tags" class="check-grid">
++          <label><input type="checkbox" value="floor_seam_or_edge"> 地面接缝或边缘</label>
++          <label><input type="checkbox" value="shadow_or_reflection"> 阴影或反光</label>
++          <label><input type="checkbox" value="cable_or_rope"> 线缆或绳索</label>
++          <label><input type="checkbox" value="non_target_hose"> 非目标水带</label>
++          <label><input type="checkbox" value="elongated_object"> 细长物体</label>
++          <label><input type="checkbox" value="motion_or_low_light_artifact"> 运动或低照伪影</label>
++        </div>
++      </fieldset>
++
++      <label for="exclusion-reason">排除原因</label>
++      <select id="exclusion-reason">
++        <option value="">未选择</option>
++        <option value="near_duplicate">近重复帧</option>
++        <option value="severe_motion_blur">严重运动模糊</option>
++        <option value="severe_exposure_failure">严重曝光失败</option>
++        <option value="ambiguous_target_identity">目标身份不明确</option>
++        <option value="long_occlusion_unknown_path">长遮挡且路径不明</option>
++        <option value="no_training_value">无训练价值</option>
++      </select>
++
++      <label for="notes">复核备注</label>
++      <textarea id="notes" rows="3"></textarea>
++
++      <label for="warnings">警告（每行一项）</label>
++      <textarea id="warnings" rows="2"></textarea>
++
++      <section class="suggestion-box" aria-label="模型预标注上下文">
++        <h3>模型建议（仅供参考）</h3>
++        <p id="suggestion-context">当前记录没有模型建议。</p>
++      </section>
++
++      <p id="classification-preview" class="classification-preview">待选择人工分类</p>
++      <div class="classification-grid">
++        <button id="mark-positive" type="button" class="positive">确认正样本</button>
++        <button id="mark-hard-negative" type="button">确认困难负样本</button>
++        <button id="mark-excluded" type="button">确认排除</button>
++        <button id="mark-needs-review" type="button">标记需二次复核</button>
++      </div>
++
++      <button id="save-status" type="button" class="save-button">保存当前草稿</button>
++      <p id="save-result" class="save-result" aria-live="polite">尚无保存操作</p>
++    </aside>
++  </main>
++</body>
++</html>
+
+--- app.js ---
+diff --git a/low_light_dataset/review_web/app.js b/low_light_dataset/review_web/app.js
+new file mode 100644
+index 0000000..aca61e2
+--- /dev/null
++++ b/low_light_dataset/review_web/app.js
+@@ -0,0 +1,752 @@
++(() => {
++  "use strict";
++
++  const CANVAS_WIDTH = 640;
++  const CANVAS_HEIGHT = 480;
++  const SELECTION_RADIUS = 6;
++  const AUTOSAVE_DELAY_MS = 500;
++  const HISTORY_LIMIT = 50;
++  const SESSION_REASON_PREFIX = "hose-review:exclusion-reason:";
++  const CLASS_NAMES = {
++    positive: "正样本",
++    hard_negative: "困难负样本",
++    excluded: "排除",
++    needs_second_review: "需二次复核",
++  };
++
++  const byId = (id) => document.getElementById(id);
++  const canvas = byId("hose-canvas");
++  const context = canvas.getContext("2d");
++  const backgroundImage = new Image();
++  const state = {
++    records: [],
++    queue: [],
++    detail: null,
++    anchors: [],
++    suggestionAnchors: [],
++    selectedIndex: null,
++    dragging: false,
++    dragSnapshot: null,
++    undoStack: [],
++    redoStack: [],
++  };
++  let autosaveTimer = null;
++  let pendingAutosave = Promise.resolve(true);
++  let saveBlocked = false;
++  let editGeneration = 0;
++  let navigationToken = 0;
++  const reasonDraftFallback = new Map();
++
++  function markLocalEdit() {
++    editGeneration += 1;
++  }
++
++  function reasonDraftKey(stem) {
++    return `${SESSION_REASON_PREFIX}${stem}`;
++  }
++
++  function loadReasonDraft(stem) {
++    if (!stem) return null;
++    if (reasonDraftFallback.has(stem)) return reasonDraftFallback.get(stem);
++    try {
++      return window.sessionStorage.getItem(reasonDraftKey(stem));
++    } catch (error) {
++      return null;
++    }
++  }
++
++  function storeReasonDraft(stem, reason) {
++    if (!stem) return;
++    reasonDraftFallback.set(stem, reason);
++    try {
++      window.sessionStorage.setItem(reasonDraftKey(stem), reason);
++    } catch (error) {
++      // The in-memory fallback still protects the current browser session.
++    }
++  }
++
++  function clearReasonDraft(stem) {
++    if (!stem) return;
++    reasonDraftFallback.delete(stem);
++    try {
++      window.sessionStorage.removeItem(reasonDraftKey(stem));
++    } catch (error) {
++      // Storage can be disabled; the fallback has already been cleared.
++    }
++  }
++
++  function cloneAnchors(anchors) {
++    return anchors.map((anchor) => ({ ...anchor }));
++  }
++
++  function deduplicateAnchors(anchors) {
++    const byY = new Map();
++    anchors.forEach((anchor) => {
++      const rawX = Number(anchor.x);
++      const rawY = Number(anchor.y);
++      if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) return;
++      const y = Math.max(0, Math.min(479, Math.round(rawY)));
++      const x = Math.max(0, Math.min(639, Number(rawX.toFixed(2))));
++      byY.set(y, { y, x, confidence: 1, source: "human" });
++    });
++    return Array.from(byY.values()).sort((a, b) => a.y - b.y);
++  }
++
++  function pointerCoordinates(event) {
++    const rect = canvas.getBoundingClientRect();
++    const scaledX = (event.clientX - rect.left) * CANVAS_WIDTH / rect.width;
++    const scaledY = (event.clientY - rect.top) * CANVAS_HEIGHT / rect.height;
++    return {
++      x: Math.max(0, Math.min(639, Number(scaledX.toFixed(2)))),
++      y: Math.max(0, Math.min(479, Math.round(scaledY))),
++    };
++  }
++
++  function nearestAnchorIndex(event) {
++    const rect = canvas.getBoundingClientRect();
++    const point = pointerCoordinates(event);
++    let nearest = null;
++    let nearestDistance = SELECTION_RADIUS + 1;
++    state.anchors.forEach((anchor, index) => {
++      const dx = (anchor.x - point.x) * rect.width / CANVAS_WIDTH;
++      const dy = (anchor.y - point.y) * rect.height / CANVAS_HEIGHT;
++      const distance = Math.hypot(dx, dy);
++      if (distance <= SELECTION_RADIUS && distance < nearestDistance) {
++        nearest = index;
++        nearestDistance = distance;
++      }
++    });
++    return nearest;
++  }
++
++  function drawCenterline(anchors, color, width, pointRadius) {
++    const sorted = cloneAnchors(anchors).sort((a, b) => a.y - b.y);
++    if (sorted.length) {
++      context.beginPath();
++      context.moveTo(sorted[0].x, sorted[0].y);
++      sorted.slice(1).forEach((anchor) => context.lineTo(anchor.x, anchor.y));
++      context.strokeStyle = color;
++      context.lineWidth = width;
++      context.lineJoin = "round";
++      context.stroke();
++    }
++    sorted.forEach((anchor) => {
++      context.beginPath();
++      context.arc(anchor.x, anchor.y, pointRadius, 0, Math.PI * 2);
++      context.fillStyle = color;
++      context.fill();
++      context.strokeStyle = "#111827";
++      context.lineWidth = 1;
++      context.stroke();
++    });
++  }
++
++  function renderCanvas() {
++    context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
++    if (backgroundImage.complete && backgroundImage.naturalWidth) {
++      context.drawImage(backgroundImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
++    } else {
++      context.fillStyle = "#111827";
++      context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
++    }
++    drawCenterline(state.suggestionAnchors, "#f59e0b", 3, 4);
++    drawCenterline(state.anchors, "#ef4444", 3, 5);
++    if (state.selectedIndex !== null && state.anchors[state.selectedIndex]) {
++      const selected = state.anchors[state.selectedIndex];
++      context.beginPath();
++      context.arc(selected.x, selected.y, 9, 0, Math.PI * 2);
++      context.strokeStyle = "#ffffff";
++      context.lineWidth = 2;
++      context.stroke();
++    }
++  }
++
++  function mediaUrl(stem, enhanced = false) {
++    if (!stem) return "";
++    const base = enhanced ? "/media/enhanced/" : "/media/original/";
++    return `${base}${encodeURIComponent(stem)}.jpg`;
++  }
++
++  function loadBackground() {
++    if (!state.detail) return;
++    backgroundImage.src = mediaUrl(state.detail.stem, byId("preview-toggle").checked);
++  }
++
++  backgroundImage.addEventListener("load", renderCanvas);
++  backgroundImage.addEventListener("error", () => {
++    renderCanvas();
++    showSaveResult("图像加载失败，请检查候选帧。", true);
++  });
++
++  function pushHistory(stack, anchors) {
++    stack.push(cloneAnchors(anchors));
++    if (stack.length > HISTORY_LIMIT) stack.shift();
++  }
++
++  function commitAnchors(nextAnchors) {
++    pushHistory(state.undoStack, state.anchors);
++    state.redoStack.length = 0;
++    state.anchors = deduplicateAnchors(nextAnchors);
++    markLocalEdit();
++    state.selectedIndex = null;
++    renderCanvas();
++    updateHistoryButtons();
++    scheduleAutosave();
++  }
++
++  function undo() {
++    if (!state.undoStack.length) return;
++    pushHistory(state.redoStack, state.anchors);
++    state.anchors = state.undoStack.pop();
++    markLocalEdit();
++    state.selectedIndex = null;
++    renderCanvas();
++    updateHistoryButtons();
++    scheduleAutosave();
++  }
++
++  function redo() {
++    if (!state.redoStack.length) return;
++    pushHistory(state.undoStack, state.anchors);
++    state.anchors = state.redoStack.pop();
++    markLocalEdit();
++    state.selectedIndex = null;
++    renderCanvas();
++    updateHistoryButtons();
++    scheduleAutosave();
++  }
++
++  function updateHistoryButtons() {
++    byId("undo").disabled = state.undoStack.length === 0;
++    byId("redo").disabled = state.redoStack.length === 0;
++  }
++
++  canvas.addEventListener("pointerdown", (event) => {
++    canvas.focus();
++    const nearest = nearestAnchorIndex(event);
++    if (nearest !== null) {
++      state.selectedIndex = nearest;
++      state.dragging = true;
++      state.dragSnapshot = cloneAnchors(state.anchors);
++      canvas.setPointerCapture(event.pointerId);
++      renderCanvas();
++      return;
++    }
++    commitAnchors([...state.anchors, pointerCoordinates(event)]);
++    const point = pointerCoordinates(event);
++    state.selectedIndex = state.anchors.findIndex((anchor) => anchor.y === point.y);
++    renderCanvas();
++  });
++
++  canvas.addEventListener("pointermove", (event) => {
++    if (!state.dragging || state.selectedIndex === null) return;
++    const point = pointerCoordinates(event);
++    const moving = cloneAnchors(state.anchors);
++    moving[state.selectedIndex] = { ...moving[state.selectedIndex], ...point };
++    const nextAnchors = deduplicateAnchors(moving);
++    const geometryChanged = JSON.stringify(nextAnchors) !== JSON.stringify(state.anchors);
++    if (!geometryChanged) return;
++    state.anchors = nextAnchors;
++    markLocalEdit();
++    state.selectedIndex = state.anchors.findIndex((anchor) => anchor.y === point.y);
++    renderCanvas();
++  });
++
++  function finishDrag(event) {
++    if (!state.dragging) return;
++    state.dragging = false;
++    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
++    if (JSON.stringify(state.dragSnapshot) !== JSON.stringify(state.anchors)) {
++      pushHistory(state.undoStack, state.dragSnapshot || []);
++      state.redoStack.length = 0;
++      updateHistoryButtons();
++      scheduleAutosave();
++    }
++    state.dragSnapshot = null;
++  }
++
++  canvas.addEventListener("pointerup", finishDrag);
++  canvas.addEventListener("pointercancel", finishDrag);
++
++  function isTypingTarget(target) {
++    return target instanceof HTMLInputElement
++      || target instanceof HTMLTextAreaElement
++      || target instanceof HTMLSelectElement
++      || target.isContentEditable;
++  }
++
++  function editorHasFocus() {
++    return document.activeElement === canvas || byId("canvas-editor").contains(document.activeElement);
++  }
++
++  document.addEventListener("keydown", (event) => {
++    if (isTypingTarget(event.target) || !editorHasFocus()) return;
++    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
++      event.preventDefault();
++      undo();
++    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
++      event.preventDefault();
++      redo();
++    } else if ((event.key === "Delete" || event.key === "Backspace") && state.selectedIndex !== null) {
++      event.preventDefault();
++      commitAnchors(state.anchors.filter((_, index) => index !== state.selectedIndex));
++    }
++  });
++
++  byId("undo").addEventListener("click", undo);
++  byId("redo").addEventListener("click", redo);
++  byId("clear-anchors").addEventListener("click", () => {
++    if (!state.anchors.length) return;
++    if (window.confirm("确认清空当前记录的全部人工锚点？")) commitAnchors([]);
++  });
++
++  function selectedTags() {
++    return Array.from(byId("interference-tags").querySelectorAll("input:checked"), (input) => input.value);
++  }
++
++  function warningValues(raw = byId("warnings").value) {
++    return raw.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
++  }
++
++  function captureDraft() {
++    return {
++      anchors: cloneAnchors(state.anchors),
++      notes: byId("notes").value,
++      warnings: byId("warnings").value,
++      exclusionReason: byId("exclusion-reason").value,
++      tags: selectedTags(),
++    };
++  }
++
++  function restoreDraft(draft) {
++    state.anchors = cloneAnchors(draft.anchors);
++    byId("notes").value = draft.notes;
++    byId("warnings").value = draft.warnings;
++    byId("exclusion-reason").value = draft.exclusionReason;
++    byId("interference-tags").querySelectorAll("input").forEach((input) => {
++      input.checked = draft.tags.includes(input.value);
++    });
++    renderCanvas();
++  }
++
++  function draftPayload(
++    status = null,
++    action = "draft",
++    anchorsOverride = null,
++    draft = captureDraft(),
++  ) {
++    const effectiveStatus = status || state.detail.status;
++    const payload = {
++      revision: state.detail.revision,
++      action,
++      status: effectiveStatus,
++      anchors: (anchorsOverride === null ? draft.anchors : anchorsOverride).map((anchor) => ({
++        y: Math.round(anchor.y),
++        x: Number(anchor.x),
++        confidence: 1,
++        source: "human",
++      })),
++      interference_tags: draft.tags,
++      exclusion_reason: effectiveStatus === "excluded" ? draft.exclusionReason || null : null,
++      notes: draft.notes,
++      warnings: warningValues(draft.warnings),
++    };
++    delete payload.first_reviewed_at;
++    delete payload.second_reviewed_at;
++    delete payload.origin;
++    delete payload.actor;
++    delete payload.image_sha256;
++    delete payload.preannotation;
++    return payload;
++  }
++
++  function showSaveResult(message, isError = false) {
++    const result = byId("save-result");
++    result.textContent = message;
++    result.classList.toggle("error", isError);
++  }
++
++  async function fetchJson(url, options = undefined) {
++    const response = await fetch(url, options);
++    if (!response.ok) {
++      const error = new Error(`HTTP ${response.status}`);
++      error.response = response;
++      throw error;
++    }
++    return response.json();
++  }
++
++  async function preserveRevisionConflict(stem) {
++    const remote = await fetchJson(`/api/records/${encodeURIComponent(stem)}`);
++    if (state.detail?.stem === stem) {
++      const editableFields = new Set([
++        "anchors", "interference_tags", "exclusion_reason", "notes", "warnings",
++      ]);
++      const safeMetadata = Object.fromEntries(
++        Object.entries(remote).filter(([key]) => !editableFields.has(key)),
++      );
++      state.detail = { ...state.detail, ...safeMetadata };
++      byId("revision-indicator").textContent = `修订 ${remote.revision}（冲突）`;
++    }
++    showSaveResult("修订冲突：已保留本地未保存内容，请核对后再次保存。", true);
++  }
++
++  async function performSave({ status = null, action = "draft", anchorsOverride = null, quiet = false } = {}) {
++    if (!state.detail) return false;
++    const saveGeneration = editGeneration;
++    const saveSnapshot = captureDraft();
++    const saveStem = state.detail.stem;
++    const payload = draftPayload(status, action, anchorsOverride, saveSnapshot);
++    let response;
++    try {
++      response = await fetch(`/api/records/${encodeURIComponent(saveStem)}`, {
++        method: "PATCH",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify(payload),
++      });
++      if (response.status === 409) {
++        await preserveRevisionConflict(saveStem);
++        saveBlocked = true;
++        return false;
++      }
++      if (!response.ok) throw new Error(`HTTP ${response.status}`);
++      const saved = await response.json();
++      const recordIndex = state.records.findIndex((record) => record.stem === saved.stem);
++      if (recordIndex >= 0) state.records[recordIndex] = { ...state.records[recordIndex], ...saved };
++
++      const editableFields = new Set([
++        "anchors", "interference_tags", "exclusion_reason", "notes", "warnings",
++      ]);
++      const safeMetadata = Object.fromEntries(
++        Object.entries(saved).filter(([key]) => !editableFields.has(key)),
++      );
++      if (state.detail && state.detail.stem === saved.stem) {
++        state.detail = { ...state.detail, ...safeMetadata };
++        byId("revision-indicator").textContent = `修订 ${saved.revision}`;
++      }
++
++      if (editGeneration === saveGeneration && state.detail?.stem === saved.stem) {
++        state.detail = { ...state.detail, ...saved };
++        state.anchors = deduplicateAnchors(saved.anchors || []);
++        if (action !== "draft") {
++          if (status === "excluded") storeReasonDraft(saved.stem, saved.exclusion_reason || "");
++          else clearReasonDraft(saved.stem);
++        }
++        populateDraftFields(state.detail);
++        renderCanvas();
++      } else if (state.detail?.stem === saved.stem) {
++        // newer edits remain pending; an older response must not replace them.
++        if (action !== "draft") {
++          saveBlocked = true;
++          showSaveResult("服务器已保存分类，但检测到更新的本地编辑；请重新点击并确认分类。", true);
++          return false;
++        }
++        showSaveResult("较新的本地编辑仍待保存，已安排下一次草稿保存。", false);
++        return true;
++      }
++      saveBlocked = false;
++      showSaveResult(quiet ? "草稿已自动保存。" : "保存成功。", false);
++      return true;
++    } catch (error) {
++      saveBlocked = true;
++      showSaveResult("保存失败：本地编辑仍保留，请检查服务后重试。", true);
++      return false;
++    }
++  }
++
++  function scheduleAutosave() {
++    if (!state.detail) return;
++    if (autosaveTimer !== null) window.clearTimeout(autosaveTimer);
++    autosaveTimer = window.setTimeout(() => {
++      autosaveTimer = null;
++      pendingAutosave = pendingAutosave.then((previousSaved) => (
++        previousSaved && !saveBlocked ? performSave({ quiet: true }) : false
++      ));
++    }, AUTOSAVE_DELAY_MS);
++  }
++
++  async function awaitPendingAutosave() {
++    if (autosaveTimer !== null) {
++      window.clearTimeout(autosaveTimer);
++      autosaveTimer = null;
++      pendingAutosave = pendingAutosave.then((previousSaved) => (
++        previousSaved && !saveBlocked ? performSave({ quiet: true }) : false
++      ));
++    }
++    if (saveBlocked) return false;
++    return await pendingAutosave;
++  }
++
++  async function saveCurrentDraft() {
++    const explicitRetry = saveBlocked;
++    if (autosaveTimer !== null) {
++      window.clearTimeout(autosaveTimer);
++      autosaveTimer = null;
++    }
++    if (!explicitRetry && !await pendingAutosave) {
++      showSaveResult("待处理草稿保存失败；请再次点击保存以重试。", true);
++      return;
++    }
++    saveBlocked = false;
++    pendingAutosave = performSave();
++    await pendingAutosave;
++  }
++
++  function recordTimestamp(stem) {
++    const record = state.records.find((item) => item.stem === stem);
++    return record ? String(record.target_timestamp_seconds ?? "—") : "—";
++  }
++
++  function setNeighbor(kind, stem) {
++    const button = byId(`${kind}-frame`);
++    const timestamp = byId(`${kind}-timestamp`);
++    const thumbnail = byId(`${kind}-thumbnail`);
++    button.disabled = !stem;
++    button.dataset.stem = stem || "";
++    timestamp.textContent = stem ? recordTimestamp(stem) : "无";
++    if (stem) {
++      thumbnail.src = mediaUrl(stem, false);
++      thumbnail.alt = `${kind === "previous" ? "上一" : "下一"}帧 ${stem}`;
++      thumbnail.hidden = false;
++    } else {
++      thumbnail.removeAttribute("src");
++      thumbnail.alt = "序列边界，无相邻帧";
++      thumbnail.hidden = true;
++    }
++  }
++
++  function showSuggestion(preannotation) {
++    if (!preannotation) {
++      byId("suggestion-context").textContent = "当前记录没有模型建议。";
++      return;
++    }
++    const metrics = preannotation.source_metrics || {};
++    const confidence = preannotation.confidence ?? metrics.confidence ?? "未提供";
++    const source = preannotation.source ?? preannotation.status ?? "未知";
++    byId("suggestion-context").textContent = `来源：${source}；置信度：${confidence}；锚点：${state.suggestionAnchors.length}。`;
++  }
++
++  function populateDraftFields(detail) {
++    byId("notes").value = detail.notes || "";
++    byId("warnings").value = (detail.warnings || []).join("\n");
++    const localReason = loadReasonDraft(detail.stem);
++    const reason = localReason === null ? detail.exclusion_reason || "" : localReason;
++    byId("exclusion-reason").value = reason;
++    if (localReason === null && detail.exclusion_reason) {
++      storeReasonDraft(detail.stem, detail.exclusion_reason);
++    }
++    byId("interference-tags").querySelectorAll("input").forEach((input) => {
++      input.checked = (detail.interference_tags || []).includes(input.value);
++    });
++  }
++
++  async function loadRecord(stem, waitForSave = true) {
++    if (!stem) return;
++    const requestToken = ++navigationToken;
++    if (waitForSave && state.detail && state.detail.stem !== stem) {
++      const saved = await awaitPendingAutosave();
++      if (requestToken !== navigationToken) return;
++      if (!saved) {
++        showSaveResult("切换已取消：请先处理当前记录的保存错误。", true);
++        return;
++      }
++    }
++    try {
++      const detail = await fetchJson(`/api/records/${encodeURIComponent(stem)}`);
++      if (requestToken !== navigationToken) return;
++      state.detail = detail;
++      state.anchors = deduplicateAnchors(detail.anchors || []);
++      state.suggestionAnchors = deduplicateAnchors(detail.preannotation?.anchors || []);
++      state.selectedIndex = null;
++      state.undoStack.length = 0;
++      state.redoStack.length = 0;
++      byId("current-stem").textContent = detail.stem;
++      byId("current-timestamp").textContent = String(detail.target_timestamp_seconds ?? "—");
++      byId("revision-indicator").textContent = `修订 ${detail.revision}`;
++      byId("record-select").value = detail.stem;
++      populateDraftFields(detail);
++      showSuggestion(detail.preannotation);
++      setNeighbor("previous", detail.previous_stem);
++      setNeighbor("next", detail.next_stem);
++      byId("preview-toggle").checked = false;
++      byId("current-thumbnail").src = mediaUrl(detail.stem, false);
++      loadBackground();
++      updateHistoryButtons();
++      byId("classification-preview").textContent = `当前状态：${CLASS_NAMES[detail.status] || detail.status}`;
++      showSaveResult("已加载，等待编辑。", false);
++    } catch (error) {
++      if (requestToken !== navigationToken) return;
++      showSaveResult("记录加载失败，请刷新后重试。", true);
++    }
++  }
++
++  function recordEventKind(record) {
++    if (record.source === "base") return "base";
++    if (record.source === "event") return "event";
++    return record.event_reason ? "event" : "base";
++  }
++
++  function recordsForStatus(status) {
++    if (["all", "unreviewed", "needs_second_review"].includes(status)) {
++      const byStem = new Map(state.records.map((record) => [record.stem, record]));
++      return state.queue.map((stem) => byStem.get(stem)).filter(Boolean);
++    }
++    return state.records;
++  }
++
++  function matchesFilters(record) {
++    const status = byId("status-filter").value;
++    const event = byId("event-filter").value;
++    const warning = byId("warning-filter").value;
++    if (status === "unreviewed" && record.status !== "unreviewed") return false;
++    if (
++      status === "needs_second_review"
++      && record.status !== "needs_second_review"
++      && !(record.second_review_required && !record.second_reviewed_at)
++    ) return false;
++    if (["positive", "hard_negative", "excluded"].includes(status) && record.status !== status) return false;
++    if (event !== "all" && recordEventKind(record) !== event) return false;
++    const hasWarnings = Array.isArray(record.warnings) && record.warnings.length > 0;
++    if (warning === "warning" && !hasWarnings) return false;
++    if (warning === "clean" && hasWarnings) return false;
++    return true;
++  }
++
++  async function applyFilters() {
++    navigationToken += 1;
++    const status = byId("status-filter").value;
++    const filtered = recordsForStatus(status).filter(matchesFilters);
++    const select = byId("record-select");
++    select.replaceChildren();
++    filtered.forEach((record) => {
++      const option = document.createElement("option");
++      option.value = record.stem;
++      option.textContent = `${record.target_timestamp_seconds ?? "—"} · ${record.stem} · ${record.status}`;
++      select.append(option);
++    });
++    const currentStillVisible = filtered.some((record) => record.stem === state.detail?.stem);
++    if (currentStillVisible) {
++      select.value = state.detail.stem;
++    } else if (filtered.length) {
++      select.value = filtered[0].stem;
++      if (state.detail) await loadRecord(filtered[0].stem);
++    } else {
++      select.value = "";
++      showSaveResult("当前筛选条件没有匹配记录。", false);
++    }
++    return filtered;
++  }
++
++  function renderSummary(summary) {
++    const statusCounts = summary.counts || summary.status_counts || summary.by_status || {};
++    byId("summary-counts").textContent = `总计 ${summary.total ?? state.records.length} · 未复核 ${statusCounts.unreviewed ?? 0} · 需二审 ${statusCounts.needs_second_review ?? 0}`;
++  }
++
++  async function refreshLists() {
++    const [summary, recordsPayload, queuePayload] = await Promise.all([
++      fetchJson("/api/summary"),
++      fetchJson("/api/records"),
++      fetchJson("/api/review-queue"),
++    ]);
++    state.records = recordsPayload.records || [];
++    state.queue = queuePayload.stems || [];
++    renderSummary(summary);
++    await applyFilters();
++  }
++
++  async function confirmClassification(status) {
++    if (!state.detail) return;
++    if (status === "positive" && state.anchors.length < 3) {
++      showSaveResult("正样本至少需要 3 个锚点。", true);
++      return;
++    }
++    if (status === "hard_negative" && selectedTags().length === 0) {
++      showSaveResult("困难负样本至少需要一个干扰标签。", true);
++      return;
++    }
++    if (status === "excluded" && !byId("exclusion-reason").value) {
++      showSaveResult("排除记录必须选择排除原因。", true);
++      return;
++    }
++    const className = CLASS_NAMES[status];
++    byId("classification-preview").textContent = `正在确认分类：${className}`;
++    if (!window.confirm(`确认将当前记录保存为“${className}”？`)) {
++      byId("classification-preview").textContent = "已取消分类确认";
++      return;
++    }
++    const explicitRetry = saveBlocked;
++    if (explicitRetry) {
++      if (autosaveTimer !== null) {
++        window.clearTimeout(autosaveTimer);
++        autosaveTimer = null;
++      }
++      saveBlocked = false;
++      pendingAutosave = Promise.resolve(true);
++    }
++    const pendingSaved = await awaitPendingAutosave();
++    if (!pendingSaved) {
++      byId("classification-preview").textContent = "待重新确认分类";
++      showSaveResult("待处理草稿未保存；请解决错误后重新点击并确认分类。", true);
++      return;
++    }
++    const action = status === "needs_second_review" ? "draft" : "finalize";
++    const anchorsOverride = status === "hard_negative" ? [] : null;
++    pendingAutosave = performSave({ status, action, anchorsOverride });
++    const saved = await pendingAutosave;
++    if (saved) {
++      if (anchorsOverride) state.anchors = [];
++      if (status === "excluded") {
++        storeReasonDraft(state.detail.stem, byId("exclusion-reason").value);
++      } else {
++        clearReasonDraft(state.detail.stem);
++        byId("exclusion-reason").value = "";
++      }
++      byId("classification-preview").textContent = `已确认分类：${className}`;
++      await refreshLists();
++    }
++  }
++
++  byId("mark-positive").addEventListener("click", () => confirmClassification('positive'));
++  byId("mark-hard-negative").addEventListener("click", () => confirmClassification('hard_negative'));
++  byId("mark-excluded").addEventListener("click", () => confirmClassification('excluded'));
++  byId("mark-needs-review").addEventListener("click", () => confirmClassification('needs_second_review'));
++  byId("save-status").addEventListener("click", saveCurrentDraft);
++
++  ["notes", "warnings"].forEach((id) => {
++    byId(id).addEventListener("input", () => {
++      markLocalEdit();
++      scheduleAutosave();
++    });
++  });
++  byId("exclusion-reason").addEventListener("change", () => {
++    markLocalEdit();
++    if (state.detail) storeReasonDraft(state.detail.stem, byId("exclusion-reason").value);
++    scheduleAutosave();
++  });
++  byId("interference-tags").addEventListener("change", () => {
++    markLocalEdit();
++    scheduleAutosave();
++  });
++  byId("preview-toggle").addEventListener("change", loadBackground);
++
++  ["status-filter", "event-filter", "warning-filter"].forEach((id) => {
++    byId(id).addEventListener("change", () => { void applyFilters(); });
++  });
++  byId("record-select").addEventListener("change", (event) => loadRecord(event.target.value));
++  byId("previous-frame").addEventListener("click", (event) => loadRecord(event.currentTarget.dataset.stem));
++  byId("next-frame").addEventListener("click", (event) => loadRecord(event.currentTarget.dataset.stem));
++
++  async function initialize() {
++    try {
++      await refreshLists();
++      const initialStem = byId("record-select").value;
++      if (initialStem) await loadRecord(initialStem, false);
++      else showSaveResult("当前没有可复核记录。", false);
++    } catch (error) {
++      showSaveResult("工作台加载失败，请确认本地复核服务正在运行。", true);
++    }
++  }
++
++  updateHistoryButtons();
++  initialize();
++})();
+
+--- styles.css ---
+diff --git a/low_light_dataset/review_web/styles.css b/low_light_dataset/review_web/styles.css
+new file mode 100644
+index 0000000..038e3b7
+--- /dev/null
++++ b/low_light_dataset/review_web/styles.css
+@@ -0,0 +1,251 @@
++:root {
++  color-scheme: dark;
++  font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
++  background: #08111f;
++  color: #e5edf7;
++  --panel: #111c2e;
++  --panel-border: #2a3b55;
++  --muted: #9eafc6;
++  --focus: #69c6ff;
++  --accent: #27b3a2;
++}
++
++* { box-sizing: border-box; }
++
++html, body { min-height: 100%; }
++
++body {
++  margin: 0;
++  background: radial-gradient(circle at 48% 0%, #172942 0, #08111f 48rem);
++  overflow-x: hidden;
++}
++
++button, input, select, textarea { font: inherit; }
++
++button, select, input, textarea {
++  color: #eef5ff;
++  background: #0b1627;
++  border: 1px solid #3a4d68;
++  border-radius: 0.4rem;
++}
++
++button {
++  min-height: 2.4rem;
++  padding: 0.52rem 0.8rem;
++  cursor: pointer;
++  font-weight: 700;
++}
++
++button:hover:not(:disabled) { border-color: #7bc6f2; background: #162841; }
++button:disabled { cursor: not-allowed; opacity: 0.45; }
++
++:focus-visible {
++  outline: 3px solid var(--focus);
++  outline-offset: 2px;
++}
++
++.app-header {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 1rem;
++  padding: 0.75rem clamp(0.8rem, 2vw, 1.5rem);
++}
++
++h1, h2, h3, p { margin-top: 0; }
++h1 { margin-bottom: 0; font-size: clamp(1.35rem, 2.4vw, 2rem); }
++h2 { margin-bottom: 0.7rem; font-size: 1.08rem; }
++h3 { font-size: 0.95rem; }
++
++.eyebrow {
++  margin-bottom: 0.2rem;
++  color: #72d6ca;
++  font-size: 0.72rem;
++  font-weight: 800;
++  letter-spacing: 0.16em;
++}
++
++.summary { color: #cbd8e8; font-variant-numeric: tabular-nums; }
++
++.safety-banner {
++  position: relative;
++  z-index: 1;
++  padding: 0.65rem 1rem;
++  color: #fff7ce;
++  background: #5a4400;
++  border-block: 1px solid #d4a900;
++  text-align: center;
++  font-weight: 800;
++}
++
++.workspace {
++  display: grid;
++  grid-template-columns: minmax(12rem, 0.7fr) minmax(32rem, 2.25fr) minmax(18rem, 1fr);
++  gap: 0.75rem;
++  width: 100%;
++  padding: 0.75rem;
++  align-items: start;
++}
++
++.panel {
++  min-width: 0;
++  padding: 0.85rem;
++  background: color-mix(in srgb, var(--panel) 94%, transparent);
++  border: 1px solid var(--panel-border);
++  border-radius: 0.65rem;
++  box-shadow: 0 0.8rem 2.5rem rgb(0 0 0 / 18%);
++}
++
++.queue-panel, .review-panel { display: grid; gap: 0.42rem; }
++label, legend { color: #c6d5e8; font-size: 0.84rem; font-weight: 700; }
++select, input[type="text"], textarea { width: 100%; padding: 0.5rem 0.55rem; }
++textarea { resize: vertical; }
++#record-select { min-height: 18rem; }
++
++.viewer-heading, .status-row {
++  display: flex;
++  justify-content: space-between;
++  align-items: start;
++  gap: 1rem;
++}
++
++.viewer-heading p { margin-bottom: 0.25rem; color: var(--muted); }
++.toggle { display: flex; align-items: center; gap: 0.45rem; white-space: nowrap; }
++
++.canvas-shell {
++  width: min(100%, calc((100vh - 21rem) * 4 / 3));
++  min-width: min(100%, 30rem);
++  margin-inline: auto;
++  aspect-ratio: 4 / 3;
++  background: #030712;
++  border: 1px solid #52657e;
++  border-radius: 0.35rem;
++  overflow: hidden;
++}
++
++#hose-canvas {
++  display: block;
++  width: 100%;
++  height: 100%;
++  touch-action: none;
++  cursor: crosshair;
++}
++
++.legend {
++  margin: 0.45rem 0;
++  color: #cbd8e8;
++  text-align: center;
++  font-size: 0.82rem;
++}
++
++.amber-line, .red-line {
++  display: inline-block;
++  width: 1.5rem;
++  margin: 0 0.35rem 0.2rem 0.7rem;
++  border-top: 3px solid #f59e0b;
++}
++.red-line { border-color: #ef4444; }
++
++.editor-toolbar {
++  display: flex;
++  justify-content: center;
++  flex-wrap: wrap;
++  gap: 0.45rem;
++}
++.danger-quiet { color: #ffb4b4; }
++
++.neighbor-strip {
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 0.55rem;
++  margin-top: 0.65rem;
++}
++
++.neighbor-card {
++  display: grid;
++  gap: 0.3rem;
++  min-width: 0;
++  padding: 0.45rem;
++  background: #0a1424;
++  border: 1px solid #2d405a;
++  border-radius: 0.45rem;
++  text-align: center;
++  color: var(--muted);
++  font-size: 0.78rem;
++}
++
++.neighbor-card img {
++  display: block;
++  width: 100%;
++  aspect-ratio: 4 / 3;
++  object-fit: cover;
++  background: #020617;
++}
++.neighbor-card img[hidden] { display: none; }
++.current-card { border-color: #287d77; }
++
++.revision {
++  padding: 0.25rem 0.5rem;
++  color: #b8eee8;
++  background: #153b3a;
++  border-radius: 99rem;
++  white-space: nowrap;
++  font-size: 0.78rem;
++}
++
++fieldset {
++  margin: 0.25rem 0;
++  padding: 0.65rem;
++  border: 1px solid #3a4d68;
++  border-radius: 0.45rem;
++}
++
++.check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
++.check-grid label { display: flex; align-items: start; gap: 0.35rem; font-weight: 500; }
++
++.suggestion-box {
++  margin-top: 0.3rem;
++  padding: 0.65rem;
++  color: #ffe6a7;
++  background: #33270c;
++  border-left: 4px solid #f59e0b;
++  border-radius: 0.3rem;
++}
++.suggestion-box h3, .suggestion-box p { margin-bottom: 0.3rem; }
++.suggestion-box p { font-size: 0.82rem; }
++
++.classification-preview {
++  margin: 0.25rem 0;
++  padding: 0.55rem;
++  color: #dbeafe;
++  background: #172b47;
++  border-radius: 0.4rem;
++  font-weight: 700;
++  text-align: center;
++}
++
++.classification-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
++.classification-grid .positive { color: #d7fff8; border-color: #2dbdac; }
++.save-button { width: 100%; margin-top: 0.25rem; background: #176c63; border-color: #3bcdbb; }
++.save-result { min-height: 2.5rem; margin: 0; padding: 0.5rem; color: #c9f7e8; font-size: 0.84rem; }
++.save-result.error { color: #ffc2c2; background: #4a1c24; border-radius: 0.35rem; }
++
++@media (max-width: 1060px) {
++  .workspace { grid-template-columns: minmax(11rem, 0.7fr) minmax(30rem, 2fr); }
++  .review-panel { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
++  .review-panel > h2, .review-panel > .status-row, .review-panel > fieldset,
++  .review-panel > .suggestion-box, .review-panel > .classification-preview,
++  .review-panel > .classification-grid, .review-panel > .save-button,
++  .review-panel > .save-result { grid-column: 1 / -1; }
++}
++
++@media (max-width: 760px) {
++  .app-header, .viewer-heading, .status-row { align-items: stretch; flex-direction: column; }
++  .workspace { display: grid; grid-template-columns: minmax(0, 1fr); padding: 0.5rem; }
++  .queue-panel, .viewer-panel, .review-panel { grid-column: 1; }
++  .review-panel { grid-template-columns: minmax(0, 1fr); }
++  #record-select { min-height: 10rem; }
++  .canvas-shell { width: 100%; min-width: 0; }
++  .neighbor-strip { grid-template-columns: minmax(0, 1fr); }
++  .classification-grid, .check-grid { grid-template-columns: minmax(0, 1fr); }
++}

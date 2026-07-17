@@ -1,0 +1,1269 @@
+﻿TASK 4 REVIEW PACKAGE
+Base: Tasks 1-3 approved; Task 4 files absent
+Head: current working tree after path-security remediation
+
+Changed files:
+- low_light_dataset/review_service.py
+- tests/test_review_service.py
+
+--- review_service.py ---
+diff --git a/low_light_dataset/review_service.py b/low_light_dataset/review_service.py
+new file mode 100644
+index 0000000..675f89d
+--- /dev/null
++++ b/low_light_dataset/review_service.py
+@@ -0,0 +1,659 @@
++"""Loopback-only WSGI service for the local human review workbench.
++
++The module deliberately does not start a server.  ``create_app`` returns a WSGI
++application for a caller (or Werkzeug's test client), while
++``find_available_port`` performs a short-lived loopback bind probe only.
++"""
++
++from __future__ import annotations
++
++import csv
++import hashlib
++import io
++import json
++import math
++import mimetypes
++import os
++import re
++import socket
++import stat
++import tempfile
++import threading
++from datetime import datetime, timezone
++from pathlib import Path
++from typing import Any, Callable, Iterable
++
++import numpy as np
++from PIL import Image, UnidentifiedImageError
++from werkzeug.exceptions import BadRequest, MethodNotAllowed, NotFound, UnsupportedMediaType
++from werkzeug.routing import Map, Rule
++from werkzeug.wrappers import Request, Response
++
++from low_light_dataset.image_ops import enhance_low_light, save_jpeg
++from low_light_dataset.review_models import record_to_dict
++from low_light_dataset.review_store import (
++    AuditError,
++    CandidateChangedError,
++    ReviewStateError,
++    ReviewStore,
++    RevisionConflict,
++)
++
++
++WSGIApplication = Callable[
++    [dict[str, Any], Callable[[str, list[tuple[str, str]]], Any]], Iterable[bytes]
++]
++
++FINAL_STATUSES = frozenset({"positive", "hard_negative", "excluded"})
++QUEUE_STATUSES = frozenset({"unreviewed", "needs_second_review"})
++PATCH_FIELDS = frozenset(
++    {
++        "status",
++        "anchors",
++        "interference_tags",
++        "exclusion_reason",
++        "warnings",
++        "notes",
++    }
++)
++CLIENT_TIMESTAMP_FIELDS = frozenset({"first_reviewed_at", "second_reviewed_at"})
++CONTROL_FIELDS = frozenset({"revision", "action", "actor"})
++PREVIEW_SCHEMA_VERSION = 1
++SAFE_STEM_PATTERN = re.compile(r"[A-Za-z0-9_-]+\Z")
++PREVIEW_PARAM_FIELDS = frozenset(
++    {
++        "gamma",
++        "retinex_weight",
++        "clahe_clip_limit",
++        "denoise_sigma_color",
++        "sharpen_amount",
++    }
++)
++
++
++def _json_response(payload: Any, status: int = 200) -> Response:
++    return Response(
++        json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
++        status=status,
++        content_type="application/json; charset=utf-8",
++    )
++
++
++def _error(code: str, status: int) -> Response:
++    return _json_response({"error": code}, status)
++
++
++def _sha256_bytes(content: bytes) -> str:
++    return hashlib.sha256(content).hexdigest()
++
++
++def _is_integer(value: Any) -> bool:
++    return isinstance(value, int) and not isinstance(value, bool)
++
++
++def _is_finite_number(value: Any) -> bool:
++    return (
++        isinstance(value, (int, float))
++        and not isinstance(value, bool)
++        and math.isfinite(float(value))
++    )
++
++
++def _utc_now() -> str:
++    return datetime.now(timezone.utc).isoformat()
++
++
++def _load_manifest_rows(path: Path) -> list[dict[str, Any]]:
++    raw = path.read_text(encoding="utf-8-sig")
++    if "\x00" in raw:
++        raise ValueError("unsafe_manifest_stem")
++    try:
++        reader = csv.DictReader(io.StringIO(raw, newline=""))
++        if reader.fieldnames is None:
++            raise ValueError("manifest missing header")
++        rows: list[dict[str, Any]] = [dict(row) for row in reader]
++    except csv.Error as exc:
++        raise ValueError("invalid manifest") from exc
++
++    def chronological_key(row: dict[str, Any]) -> tuple[int, float, str]:
++        raw = row.get("target_timestamp_seconds")
++        try:
++            timestamp = float(raw)
++        except (TypeError, ValueError):
++            return (1, 0.0, str(row.get("stem", "")))
++        return (0, timestamp, str(row.get("stem", "")))
++
++    rows.sort(key=chronological_key)
++    for row in rows:
++        raw = row.get("target_timestamp_seconds")
++        if raw is not None:
++            try:
++                row["target_timestamp_seconds"] = float(raw)
++            except (TypeError, ValueError):
++                pass
++    return rows
++
++
++def _validate_manifest_stems(rows: list[dict[str, Any]]) -> None:
++    for row in rows:
++        stem = row.get("stem")
++        if not isinstance(stem, str):
++            raise ValueError("unsafe_manifest_stem")
++        candidate = Path(stem)
++        if (
++            stem in {"", ".", ".."}
++            or "/" in stem
++            or "\\" in stem
++            or candidate.name != stem
++            or candidate.is_absolute()
++            or bool(candidate.drive)
++            or bool(candidate.root)
++            or any(ord(character) < 32 or ord(character) == 127 for character in stem)
++            or SAFE_STEM_PATTERN.fullmatch(stem) is None
++        ):
++            raise ValueError("unsafe_manifest_stem")
++
++
++def _load_preannotations(path: Path | None, stems: set[str]) -> dict[str, dict[str, Any]]:
++    if path is None:
++        return {}
++    document = json.loads(Path(path).read_text(encoding="utf-8"))
++    if not isinstance(document, dict) or not isinstance(document.get("records"), list):
++        raise ValueError("invalid preannotation document")
++    suggestions: dict[str, dict[str, Any]] = {}
++    for item in document["records"]:
++        if not isinstance(item, dict):
++            raise ValueError("invalid preannotation record")
++        stem = item.get("stem")
++        if isinstance(stem, str) and stem in stems and stem not in suggestions:
++            # The whole suggestion remains visibly non-authoritative because it is
++            # nested.  It can never overwrite the human record at the top level.
++            suggestions[stem] = dict(item)
++    return suggestions
++
++
++def _path_is_within(path: Path, directory: Path) -> bool:
++    try:
++        path.resolve().relative_to(directory.resolve())
++    except ValueError:
++        return False
++    return True
++
++
++def _is_link_like(path: Path) -> bool:
++    """Detect symlinks and Windows reparse points without following them."""
++
++    try:
++        metadata = os.lstat(path)
++    except FileNotFoundError:
++        return False
++    attributes = getattr(metadata, "st_file_attributes", 0)
++    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
++    return stat.S_ISLNK(metadata.st_mode) or bool(attributes & reparse_flag)
++
++
++def _resolved_direct_child(directory: Path, name: str) -> Path:
++    """Return a lexical child only when its resolved target stays direct."""
++
++    if _is_link_like(directory):
++        raise ValueError("unsafe linked directory")
++    path = directory / name
++    if _is_link_like(path):
++        raise ValueError("unsafe linked child")
++    resolved_directory = directory.resolve()
++    resolved_path = path.resolve()
++    if resolved_path.parent != resolved_directory:
++        raise ValueError("unsafe resolved child")
++    return path
++
++
++class ReviewApplication:
++    """Directly testable WSGI application returned by :func:`create_app`.
++
++    ``review_store`` is intentionally public for diagnostics and focused tests;
++    request authorization remains fixed to a human local reviewer.
++    """
++
++    def __init__(
++        self,
++        candidate_root: Path,
++        work_root: Path,
++        preannotation_path: Path | None,
++        static_root: Path | None,
++    ) -> None:
++        self.candidate_root = Path(candidate_root)
++        self.work_root = Path(work_root)
++        if _path_is_within(self.work_root, self.candidate_root):
++            raise ValueError("work_root must not be inside candidate_root")
++        self.static_root = Path(static_root) if static_root is not None else None
++        self.manifest_path = self.candidate_root / "manifest.csv"
++        self.manifest_records = _load_manifest_rows(self.manifest_path)
++        _validate_manifest_stems(self.manifest_records)
++        self._manifest_by_stem = {
++            str(row["stem"]): row for row in self.manifest_records
++        }
++        self._ordered_stems = tuple(str(row["stem"]) for row in self.manifest_records)
++        self._stem_set = set(self._ordered_stems)
++        if len(self._stem_set) != len(self._ordered_stems):
++            raise ValueError("duplicate manifest stem")
++        self.frames_root = self.candidate_root / "frames"
++        for stem in self._ordered_stems:
++            self._resolved_candidate_path(stem)
++        self._safe_cache_root()
++        self.review_store = ReviewStore(self.work_root, self.candidate_root)
++        state = self.review_store.initialize(self.manifest_path)
++        state_stems = {str(item["stem"]) for item in state["records"]}
++        if state_stems != self._stem_set:
++            raise ReviewStateError("existing state manifest does not match")
++        self.preannotations = _load_preannotations(preannotation_path, self._stem_set)
++        self._preview_locks = {stem: threading.Lock() for stem in self._ordered_stems}
++        self.url_map = Map(
++            [
++                Rule("/health", endpoint="health", methods=["GET"]),
++                Rule("/api/summary", endpoint="summary", methods=["GET"]),
++                Rule("/api/records", endpoint="records", methods=["GET"]),
++                Rule(
++                    "/api/records/<stem>",
++                    endpoint="record",
++                    methods=["GET", "PATCH"],
++                ),
++                Rule("/api/review-queue", endpoint="queue", methods=["GET"]),
++                Rule(
++                    "/media/original/<stem>.jpg",
++                    endpoint="original",
++                    methods=["GET"],
++                ),
++                Rule(
++                    "/media/enhanced/<stem>.jpg",
++                    endpoint="enhanced",
++                    methods=["GET"],
++                ),
++                Rule("/static/<name>", endpoint="static", methods=["GET"]),
++            ]
++        )
++
++    def __call__(self, environ: dict[str, Any], start_response: Callable[..., Any]):
++        request = Request(environ)
++        response = self._dispatch_safely(request)
++        return response(environ, start_response)
++
++    def _dispatch_safely(self, request: Request) -> Response:
++        adapter = self.url_map.bind_to_environ(request.environ)
++        try:
++            endpoint, values = adapter.match(method=request.method)
++        except NotFound:
++            return _error("not_found", 404)
++        except MethodNotAllowed:
++            return _error("method_not_allowed", 405)
++        if request.method == "HEAD":
++            return _error("method_not_allowed", 405)
++
++        try:
++            if endpoint == "health":
++                summary = self.review_store.summary()
++                return _json_response(
++                    {
++                        "ok": True,
++                        "candidate_count": len(self._ordered_stems),
++                        "record_count": summary["total"],
++                    }
++                )
++            if endpoint == "summary":
++                return _json_response(self.review_store.summary())
++            if endpoint == "records":
++                return _json_response({"records": self._joined_records()})
++            if endpoint == "record":
++                stem = values["stem"]
++                if stem not in self._stem_set:
++                    return _error("not_found", 404)
++                if request.method == "GET":
++                    return _json_response(self._detail(stem))
++                return self._patch_record(request, stem)
++            if endpoint == "queue":
++                records = [
++                    item
++                    for item in self._joined_records()
++                    if item["status"] in QUEUE_STATUSES
++                    or (
++                        item["second_review_required"]
++                        and item["second_reviewed_at"] is None
++                    )
++                ]
++                return _json_response(
++                    {"stems": [item["stem"] for item in records], "records": records}
++                )
++            if endpoint == "original":
++                return self._original(values["stem"])
++            if endpoint == "enhanced":
++                return self._enhanced(values["stem"])
++            if endpoint == "static":
++                return self._static(values["name"])
++            return _error("not_found", 404)
++        except CandidateChangedError:
++            return _error("candidate_changed", 409)
++        except RevisionConflict:
++            return _error("revision_conflict", 409)
++        except KeyError:
++            return _error("not_found", 404)
++        except (AuditError, ReviewStateError, OSError):
++            return _error("save_failed", 500)
++        except Exception:
++            # A local service must not leak tracebacks or filesystem paths to its
++            # HTTP response.  Initialization errors still propagate from create_app.
++            return _error("service_failed", 500)
++
++    def _joined(self, stem: str) -> dict[str, Any]:
++        record = record_to_dict(self.review_store.get(stem))
++        joined = dict(self._manifest_by_stem[stem])
++        joined.update(record)
++        suggestion = self.preannotations.get(stem)
++        if suggestion is not None:
++            joined["preannotation"] = dict(suggestion)
++        return joined
++
++    def _joined_records(self) -> list[dict[str, Any]]:
++        return [self._joined(stem) for stem in self._ordered_stems]
++
++    def _detail(self, stem: str) -> dict[str, Any]:
++        index = self._ordered_stems.index(stem)
++        detail = self._joined(stem)
++        detail["previous_stem"] = self._ordered_stems[index - 1] if index else None
++        detail["next_stem"] = (
++            self._ordered_stems[index + 1]
++            if index + 1 < len(self._ordered_stems)
++            else None
++        )
++        return detail
++
++    def _patch_record(self, request: Request, stem: str) -> Response:
++        try:
++            payload = request.get_json()
++        except (BadRequest, UnsupportedMediaType):
++            return _error("invalid_json", 400)
++        if not isinstance(payload, dict):
++            return _error("invalid_json", 400)
++        if CLIENT_TIMESTAMP_FIELDS.intersection(payload):
++            return _error("client_timestamp_forbidden", 400)
++
++        revision = payload.get("revision")
++        if not _is_integer(revision) or revision < 0:
++            return _error("invalid_revision", 400)
++        action = payload.get("action", "draft")
++        if not isinstance(action, str) or action not in {
++            "draft",
++            "finalize",
++            "second_review",
++        }:
++            return _error("invalid_action", 400)
++
++        patch = {key: value for key, value in payload.items() if key not in CONTROL_FIELDS}
++        if not set(patch).issubset(PATCH_FIELDS):
++            return _error("invalid_patch", 400)
++
++        before = self.review_store.get(stem)
++        effective_status = patch.get("status", before.status.value)
++        is_final_status = (
++            isinstance(effective_status, str) and effective_status in FINAL_STATUSES
++        )
++        if action in {"finalize", "second_review"} and not is_final_status:
++            return _error("final_status_required", 400)
++
++        now = _utc_now()
++        if effective_status == "needs_second_review":
++            patch["second_review_required"] = True
++        if is_final_status and before.first_reviewed_at is None:
++            patch["first_reviewed_at"] = now
++        if action == "second_review":
++            patch["second_review_required"] = True
++            patch["second_reviewed_at"] = now
++
++        try:
++            after = self.review_store.update(
++                stem,
++                patch,
++                revision,
++                actor="local_web_reviewer",
++                origin="human",
++            )
++        except RevisionConflict:
++            return _error("revision_conflict", 409)
++        except CandidateChangedError:
++            return _error("candidate_changed", 409)
++        except (ValueError, TypeError, PermissionError):
++            return _error("validation_failed", 400)
++        except (AuditError, ReviewStateError, OSError):
++            return _error("save_failed", 500)
++        return _json_response(record_to_dict(after))
++
++    def _canonical_path(self, stem: str) -> Path:
++        if stem not in self._stem_set:
++            raise KeyError(stem)
++        path = self._resolved_candidate_path(stem)
++        self.review_store.get(stem)
++        # Recheck after hashing so a link swap cannot silently become the path read.
++        if self._resolved_candidate_path(stem) != path:
++            raise CandidateChangedError(stem)
++        return path
++
++    def _resolved_candidate_path(self, stem: str) -> Path:
++        try:
++            return _resolved_direct_child(self.frames_root, f"{stem}.jpg")
++        except (OSError, ValueError) as exc:
++            raise CandidateChangedError(stem) from exc
++
++    def _safe_cache_root(self) -> Path:
++        if _is_link_like(self.work_root):
++            raise ReviewStateError("unsafe preview cache path")
++        cache_root = self.work_root / "enhanced_preview_cache"
++        if _is_link_like(cache_root):
++            raise ReviewStateError("unsafe preview cache path")
++        try:
++            if cache_root.resolve().parent != self.work_root.resolve():
++                raise ReviewStateError("unsafe preview cache path")
++        except OSError as exc:
++            raise ReviewStateError("unsafe preview cache path") from exc
++        return cache_root
++
++    def _preview_paths(self, stem: str) -> tuple[Path, Path]:
++        cache_root = self._safe_cache_root()
++        try:
++            cache_path = _resolved_direct_child(cache_root, f"{stem}.jpg")
++            sidecar_path = _resolved_direct_child(cache_root, f"{stem}.json")
++        except (OSError, ValueError) as exc:
++            raise ReviewStateError("unsafe preview cache path") from exc
++        return cache_path, sidecar_path
++
++    def _original(self, stem: str) -> Response:
++        path = self._canonical_path(stem)
++        return Response(path.read_bytes(), content_type="image/jpeg")
++
++    def _enhanced(self, stem: str) -> Response:
++        source_path = self._canonical_path(stem)
++        source_hash = self._manifest_by_stem[stem]["image_sha256"]
++        cache_path, sidecar_path = self._preview_paths(stem)
++        with self._preview_locks[stem]:
++            cache_path, sidecar_path = self._preview_paths(stem)
++            if not self._valid_cached_preview(cache_path, sidecar_path, source_hash):
++                self._regenerate_preview(
++                    source_path,
++                    source_hash,
++                    cache_path,
++                    sidecar_path,
++                    stem,
++                )
++            cache_path, _ = self._preview_paths(stem)
++            return Response(cache_path.read_bytes(), content_type="image/jpeg")
++
++    @staticmethod
++    def _decode_jpeg(content: bytes) -> tuple[np.ndarray, str]:
++        with Image.open(io.BytesIO(content)) as image:
++            image.load()
++            if image.format != "JPEG" or image.size != (640, 480):
++                raise ValueError("JPEG must be 640x480")
++            rgb = np.asarray(image.convert("RGB"), dtype=np.uint8)
++        return rgb[:, :, ::-1].copy(), "jpeg"
++
++    def _valid_cached_preview(
++        self, cache_path: Path, sidecar_path: Path, source_hash: str
++    ) -> bool:
++        try:
++            content = cache_path.read_bytes()
++            metadata = json.loads(sidecar_path.read_text(encoding="utf-8"))
++            if not isinstance(metadata, dict):
++                return False
++            if (
++                metadata.get("schema_version") != PREVIEW_SCHEMA_VERSION
++                or metadata.get("source_sha256") != source_hash
++            ):
++                return False
++            params = metadata.get("enhancement_parameters")
++            if (
++                not isinstance(params, dict)
++                or set(params) != PREVIEW_PARAM_FIELDS
++                or not all(_is_finite_number(value) for value in params.values())
++            ):
++                return False
++            output = metadata.get("output")
++            if not isinstance(output, dict) or output != {
++                "format": "jpeg",
++                "width": 640,
++                "height": 480,
++                "byte_size": len(content),
++                "sha256": _sha256_bytes(content),
++            }:
++                return False
++            self._decode_jpeg(content)
++            return True
++        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, UnidentifiedImageError):
++            return False
++
++    def _regenerate_preview(
++        self,
++        source_path: Path,
++        source_hash: str,
++        cache_path: Path,
++        sidecar_path: Path,
++        stem: str,
++    ) -> None:
++        source, _ = self._decode_jpeg(source_path.read_bytes())
++        enhanced = enhance_low_light(source)
++        cache_root = self._safe_cache_root()
++        cache_root.mkdir(parents=True, exist_ok=True)
++        cache_root = self._safe_cache_root()
++        verified_cache_path, verified_sidecar_path = self._preview_paths(stem)
++        if verified_cache_path != cache_path or verified_sidecar_path != sidecar_path:
++            raise ReviewStateError("unsafe preview cache path")
++        jpeg_temporary: Path | None = None
++        json_temporary: Path | None = None
++        try:
++            descriptor, temporary_name = tempfile.mkstemp(
++                dir=cache_root,
++                prefix=f".{stem}.",
++                suffix=".jpg.tmp",
++            )
++            os.close(descriptor)
++            jpeg_temporary = Path(temporary_name)
++            save_jpeg(jpeg_temporary, enhanced.image)
++            output = jpeg_temporary.read_bytes()
++            self._decode_jpeg(output)
++            params = enhanced.params.to_dict()
++            metadata = {
++                "schema_version": PREVIEW_SCHEMA_VERSION,
++                "source_sha256": source_hash,
++                "enhancement_parameters": params,
++                "output": {
++                    "format": "jpeg",
++                    "width": 640,
++                    "height": 480,
++                    "byte_size": len(output),
++                    "sha256": _sha256_bytes(output),
++                },
++            }
++
++            descriptor, temporary_name = tempfile.mkstemp(
++                dir=cache_root,
++                prefix=f".{stem}.",
++                suffix=".json.tmp",
++            )
++            json_temporary = Path(temporary_name)
++            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
++                json.dump(metadata, handle, ensure_ascii=False, sort_keys=True)
++                handle.write("\n")
++                handle.flush()
++                os.fsync(handle.fileno())
++            verified_cache_path, verified_sidecar_path = self._preview_paths(stem)
++            if verified_cache_path != cache_path or verified_sidecar_path != sidecar_path:
++                raise ReviewStateError("unsafe preview cache path")
++            os.replace(jpeg_temporary, cache_path)
++            jpeg_temporary = None
++            os.replace(json_temporary, sidecar_path)
++            json_temporary = None
++        finally:
++            if jpeg_temporary is not None:
++                jpeg_temporary.unlink(missing_ok=True)
++            if json_temporary is not None:
++                json_temporary.unlink(missing_ok=True)
++
++    def _static(self, name: str) -> Response:
++        if self.static_root is None:
++            return _error("not_found", 404)
++        if not name or Path(name).name != name or "/" in name or "\\" in name:
++            return _error("not_found", 404)
++        path = self.static_root / name
++        if not path.is_file() or path.resolve().parent != self.static_root.resolve():
++            return _error("not_found", 404)
++        mimetype = mimetypes.guess_type(name)[0] or "application/octet-stream"
++        return Response(path.read_bytes(), content_type=mimetype)
++
++
++def create_app(
++    candidate_root: Path,
++    work_root: Path,
++    preannotation_path: Path | None = None,
++    static_root: Path | None = None,
++) -> WSGIApplication:
++    """Initialize compatible review state and return the loopback WSGI app.
++
++    Existing incompatible state is rejected by :class:`ReviewStore`; the service
++    never replaces it silently and never starts a persistent HTTP server.
++    """
++
++    return ReviewApplication(
++        Path(candidate_root),
++        Path(work_root),
++        Path(preannotation_path) if preannotation_path is not None else None,
++        Path(static_root) if static_root is not None else None,
++    )
++
++
++def find_available_port(
++    host: str = "127.0.0.1",
++    start: int = 8765,
++    end: int = 8799,
++) -> int:
++    """Return the first bindable port in an inclusive literal-loopback range.
++
++    Every probe socket is closed before return.  This function reserves no port;
++    the Task 8 CLI must bind the returned port itself.
++    """
++
++    if host != "127.0.0.1":
++        raise ValueError("host_must_be_literal_127.0.0.1")
++    if (
++        not _is_integer(start)
++        or not _is_integer(end)
++        or not 1 <= start <= 65535
++        or not 1 <= end <= 65535
++        or start > end
++    ):
++        raise ValueError("invalid_port_bounds")
++    for port in range(start, end + 1):
++        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++        try:
++            probe.bind((host, port))
++        except OSError:
++            continue
++        finally:
++            probe.close()
++        return port
++    raise RuntimeError(f"no_loopback_port_available_{start}_{end}")
+
+--- test_review_service.py ---
+diff --git a/tests/test_review_service.py b/tests/test_review_service.py
+new file mode 100644
+index 0000000..c807213
+--- /dev/null
++++ b/tests/test_review_service.py
+@@ -0,0 +1,587 @@
++import csv
++import hashlib
++import json
++import socket
++import tempfile
++import unittest
++from datetime import datetime, timedelta, timezone
++from pathlib import Path
++from unittest import mock
++
++import numpy as np
++from werkzeug.test import Client
++from werkzeug.wrappers import Response
++
++from low_light_dataset.image_ops import (
++    EnhancedFrame,
++    EnhancementParams,
++    measure_frame,
++    save_jpeg,
++)
++from low_light_dataset.review_service import create_app, find_available_port
++from low_light_dataset.review_store import ReviewStore
++
++
++FINAL_ANCHORS = [
++    {"y": 100, "x": 120.0, "confidence": 1.0, "source": "human"},
++    {"y": 220, "x": 240.0, "confidence": 1.0, "source": "human"},
++    {"y": 340, "x": 360.0, "confidence": 1.0, "source": "human"},
++]
++
++
++class ReviewServiceFixture(unittest.TestCase):
++    def setUp(self):
++        self.temporary_directory = tempfile.TemporaryDirectory()
++        self.root = Path(self.temporary_directory.name)
++        self.candidate_root = self.root / "candidates"
++        self.frames = self.candidate_root / "frames"
++        self.frames.mkdir(parents=True)
++        self.work_root = self.root / "work"
++        self.static_root = self.root / "static"
++        self.static_root.mkdir()
++        (self.static_root / "app.js").write_bytes(b"console.log('review');")
++        (self.static_root / "nested").mkdir()
++        (self.static_root / "nested" / "secret.js").write_bytes(b"secret")
++
++        # Manifest order is intentionally not chronological.
++        rows = [("frame_c", 30.0, 30), ("frame_a", 10.0, 10), ("frame_b", 20.0, 20)]
++        self.manifest_rows = []
++        for stem, timestamp, value in rows:
++            frame = np.full((480, 640, 3), value, dtype=np.uint8)
++            path = self.frames / f"{stem}.jpg"
++            save_jpeg(path, frame)
++            self.manifest_rows.append(
++                {
++                    "stem": stem,
++                    "target_timestamp_seconds": str(timestamp),
++                    "image_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
++                    "source": "fixture",
++                }
++            )
++        with (self.candidate_root / "manifest.csv").open(
++            "w", encoding="utf-8", newline=""
++        ) as handle:
++            writer = csv.DictWriter(handle, fieldnames=self.manifest_rows[0])
++            writer.writeheader()
++            writer.writerows(self.manifest_rows)
++
++        self.preannotation_path = self.root / "preannotation.json"
++        self.preannotation_path.write_text(
++            json.dumps(
++                {
++                    "schema_version": 1,
++                    "checkpoint_sha256": "a" * 64,
++                    "records": [
++                        {
++                            "stem": "frame_b",
++                            "image_sha256": next(
++                                row["image_sha256"]
++                                for row in self.manifest_rows
++                                if row["stem"] == "frame_b"
++                            ),
++                            "status": "positive",
++                            "notes": "model must not overwrite human notes",
++                            "anchors": FINAL_ANCHORS,
++                            "warnings": ["model_warning"],
++                            "source_metrics": {"final_count": 3},
++                        }
++                    ],
++                }
++            ),
++            encoding="utf-8",
++        )
++        self.app = create_app(
++            self.candidate_root,
++            self.work_root,
++            preannotation_path=self.preannotation_path,
++            static_root=self.static_root,
++        )
++        self.client = Client(self.app, Response)
++
++    def tearDown(self):
++        self.temporary_directory.cleanup()
++
++    def candidate_snapshot(self):
++        return {
++            path.relative_to(self.candidate_root).as_posix(): (
++                path.is_file(), path.read_bytes() if path.is_file() else b""
++            )
++            for path in sorted(self.candidate_root.rglob("*"))
++        }
++
++    def patch(self, stem, payload):
++        return self.client.patch(
++            f"/api/records/{stem}",
++            data=json.dumps(payload),
++            content_type="application/json",
++        )
++
++    @staticmethod
++    def fake_enhance(frame):
++        image = np.clip(frame.astype(np.int16) + 7, 0, 255).astype(np.uint8)
++        return EnhancedFrame(
++            image=image,
++            before=measure_frame(frame),
++            after=measure_frame(image),
++            params=EnhancementParams(0.8, 0.2, 1.8, 30.0, 0.25),
++        )
++
++
++class RouteTests(ReviewServiceFixture):
++    def test_health_summary_records_detail_neighbors_queue_and_suggestions(self):
++        self.assertEqual(
++            self.client.get("/health").get_json(),
++            {"ok": True, "candidate_count": 3, "record_count": 3},
++        )
++        summary = self.client.get("/api/summary")
++        self.assertEqual(summary.status_code, 200)
++        self.assertEqual(summary.get_json(), self.app.review_store.summary())
++
++        records_response = self.client.get("/api/records")
++        self.assertEqual(records_response.status_code, 200)
++        records = records_response.get_json()["records"]
++        self.assertEqual([item["stem"] for item in records], ["frame_a", "frame_b", "frame_c"])
++        suggested = records[1]
++        self.assertEqual(suggested["status"], "unreviewed")
++        self.assertEqual(suggested["notes"], "")
++        self.assertEqual(suggested["preannotation"]["status"], "positive")
++        self.assertEqual(suggested["preannotation"]["source_metrics"], {"final_count": 3})
++
++        detail = self.client.get("/api/records/frame_b").get_json()
++        self.assertEqual(detail["previous_stem"], "frame_a")
++        self.assertEqual(detail["next_stem"], "frame_c")
++        self.assertIsNone(self.client.get("/api/records/frame_a").get_json()["previous_stem"])
++        self.assertIsNone(self.client.get("/api/records/frame_c").get_json()["next_stem"])
++
++        queue = self.client.get("/api/review-queue").get_json()
++        self.assertEqual(queue["stems"], ["frame_a", "frame_b", "frame_c"])
++        self.assertEqual([item["stem"] for item in queue["records"]], queue["stems"])
++
++    def test_original_media_static_file_and_all_method_contracts(self):
++        expected = (self.frames / "frame_a.jpg").read_bytes()
++        media = self.client.get("/media/original/frame_a.jpg")
++        self.assertEqual(media.status_code, 200)
++        self.assertEqual(media.data, expected)
++        self.assertEqual(media.mimetype, "image/jpeg")
++        static = self.client.get("/static/app.js")
++        self.assertEqual(static.status_code, 200)
++        self.assertEqual(static.data, b"console.log('review');")
++
++        for method, path in (("post", "/health"), ("post", "/api/records"), ("get", "/api/records/frame_a")):
++            with self.subTest(method=method, path=path):
++                response = getattr(self.client, method)(path)
++                self.assertIn(response.status_code, (200, 405))
++        self.assertEqual(self.client.post("/health").status_code, 405)
++        self.assertEqual(self.client.post("/api/records").status_code, 405)
++
++    def test_traversal_encoded_traversal_unknown_stems_and_suffixes_are_rejected(self):
++        paths = (
++            "/api/records/unknown",
++            "/api/records/..%2Fframe_a",
++            "/media/original/unknown.jpg",
++            "/media/original/../frame_a.jpg",
++            "/media/original/%2e%2e%2fframe_a.jpg",
++            "/media/original/%2e%2e%5coutside.jpg",
++            "/media/original/frame_a.png",
++            "/media/original/frame_a.jpg.exe",
++            "/media/enhanced/unknown.jpg",
++            "/static/nested/secret.js",
++            "/static/..%2Fnested%2Fsecret.js",
++            "/static/%2e%2e%5cnested%5csecret.js",
++        )
++        for path in paths:
++            with self.subTest(path=path):
++                self.assertEqual(self.client.get(path).status_code, 404)
++
++    def test_head_and_options_are_not_implicitly_added_to_get_routes(self):
++        for method in ("head", "options"):
++            with self.subTest(method=method):
++                response = getattr(self.client, method)("/health")
++                self.assertEqual(response.status_code, 405)
++                if method == "head":
++                    self.assertEqual(response.data, b"")
++                else:
++                    self.assertEqual(response.get_json()["error"], "method_not_allowed")
++
++    def test_original_media_symlink_escape_is_rejected_before_hash_or_read(self):
++        original = self.frames / "frame_a.jpg"
++        outside = self.root / "outside-original.jpg"
++        outside.write_bytes(original.read_bytes())
++        original.unlink()
++        try:
++            original.symlink_to(outside)
++        except OSError as exc:
++            self.skipTest(f"file symlink creation unavailable: {exc}")
++
++        outside_before = outside.read_bytes()
++        with mock.patch.object(
++            self.app.review_store,
++            "_sha256",
++            wraps=self.app.review_store._sha256,
++        ) as candidate_hash:
++            response = self.client.get("/media/original/frame_a.jpg")
++
++        self.assertEqual(response.status_code, 409)
++        self.assertEqual(response.get_json(), {"error": "candidate_changed"})
++        candidate_hash.assert_not_called()
++        self.assertEqual(outside.read_bytes(), outside_before)
++
++
++class InitializationSecurityTests(unittest.TestCase):
++    def test_unsafe_manifest_stems_reject_before_candidate_access_or_state_write(self):
++        malicious_stems = (
++            "",
++            ".",
++            "..",
++            "../outside",
++            "..\\outside",
++            "..\\..\\outside",
++            "nested/name",
++            "nested\\name",
++            "/absolute",
++            "C:\\absolute",
++            "name.jpg",
++            "with space",
++            "control\x01name",
++            "nul\x00name",
++            "非ascii",
++        )
++        for stem in malicious_stems:
++            with self.subTest(stem=repr(stem)), tempfile.TemporaryDirectory() as directory:
++                root = Path(directory)
++                candidate_root = root / "candidates"
++                frames = candidate_root / "frames"
++                frames.mkdir(parents=True)
++                sentinel = root / "outside.jpg"
++                sentinel.write_bytes(b"outside-sentinel")
++                (candidate_root / "outside.jpg").write_bytes(b"outside-sentinel")
++                (candidate_root / "manifest.csv").write_text(
++                    "stem,image_sha256\n"
++                    + stem
++                    + ","
++                    + hashlib.sha256(b"outside-sentinel").hexdigest()
++                    + "\n",
++                    encoding="utf-8",
++                )
++
++                work_root = root / "work"
++                sentinel_before = sentinel.read_bytes()
++                caught = None
++                with mock.patch.object(
++                    ReviewStore,
++                    "_sha256",
++                    side_effect=AssertionError("unsafe candidate access attempted"),
++                ) as candidate_hash:
++                    try:
++                        create_app(candidate_root, work_root)
++                    except BaseException as exc:
++                        caught = exc
++
++                self.assertIsInstance(caught, ValueError)
++                self.assertIn("unsafe_manifest_stem", str(caught))
++                candidate_hash.assert_not_called()
++                self.assertFalse(work_root.exists())
++                self.assertEqual(sentinel.read_bytes(), sentinel_before)
++
++
++class PatchTests(ReviewServiceFixture):
++    def test_draft_then_finalize_sets_utc_first_timestamp_and_preserves_it(self):
++        draft = self.patch("frame_a", {"revision": 0, "notes": "draft"})
++        self.assertEqual(draft.status_code, 200)
++        self.assertEqual(draft.get_json()["revision"], 1)
++        self.assertIsNone(draft.get_json()["first_reviewed_at"])
++
++        finalized = self.patch(
++            "frame_a",
++            {"revision": 1, "action": "finalize", "status": "positive", "anchors": FINAL_ANCHORS},
++        )
++        self.assertEqual(finalized.status_code, 200)
++        first = finalized.get_json()["first_reviewed_at"]
++        parsed = datetime.fromisoformat(first)
++        self.assertEqual(parsed.utcoffset(), timedelta(0))
++        self.assertLess(abs(datetime.now(timezone.utc) - parsed), timedelta(seconds=5))
++
++        updated = self.patch("frame_a", {"revision": 2, "notes": "after finalize"})
++        self.assertEqual(updated.status_code, 200)
++        self.assertEqual(updated.get_json()["first_reviewed_at"], first)
++
++    def test_final_status_in_draft_is_treated_as_finalize(self):
++        response = self.patch(
++            "frame_a", {"revision": 0, "status": "positive", "anchors": FINAL_ANCHORS}
++        )
++        self.assertEqual(response.status_code, 200)
++        self.assertIsNotNone(response.get_json()["first_reviewed_at"])
++
++    def test_second_review_sets_server_timestamps_and_preserves_existing_first(self):
++        first = self.patch(
++            "frame_a", {"revision": 0, "status": "positive", "anchors": FINAL_ANCHORS}
++        ).get_json()["first_reviewed_at"]
++        second = self.patch(
++            "frame_a", {"revision": 1, "action": "second_review", "status": "positive"}
++        )
++        self.assertEqual(second.status_code, 200)
++        self.assertEqual(second.get_json()["first_reviewed_at"], first)
++        self.assertIsNotNone(second.get_json()["second_reviewed_at"])
++        self.assertTrue(second.get_json()["second_review_required"])
++
++        simultaneous = self.patch(
++            "frame_b",
++            {"revision": 0, "action": "second_review", "status": "positive", "anchors": FINAL_ANCHORS},
++        )
++        self.assertEqual(simultaneous.status_code, 200)
++        self.assertIsNotNone(simultaneous.get_json()["first_reviewed_at"])
++        self.assertIsNotNone(simultaneous.get_json()["second_reviewed_at"])
++
++    def test_client_timestamps_malformed_controls_and_invalid_final_states_are_400(self):
++        cases = (
++            ({"revision": 0, "first_reviewed_at": None}, "client_timestamp_forbidden"),
++            ({"revision": 0, "second_reviewed_at": "x"}, "client_timestamp_forbidden"),
++            ({"revision": True, "notes": "x"}, "invalid_revision"),
++            ({"revision": "0", "notes": "x"}, "invalid_revision"),
++            ({"revision": 0, "action": "approve"}, "invalid_action"),
++            ({"revision": 0, "action": []}, "invalid_action"),
++            ({"revision": 0, "action": "finalize", "status": "unreviewed"}, "final_status_required"),
++            ({"revision": 0, "action": "second_review", "status": "needs_second_review"}, "final_status_required"),
++            ({"revision": 0, "status": {}}, "validation_failed"),
++            ({"revision": 0, "origin": "system", "status": "positive", "anchors": FINAL_ANCHORS}, "invalid_patch"),
++            ({"revision": 0, "second_review_required": True}, "invalid_patch"),
++        )
++        for payload, error in cases:
++            with self.subTest(payload=payload):
++                response = self.patch("frame_a", payload)
++                self.assertEqual(response.status_code, 400)
++                self.assertEqual(response.get_json()["error"], error)
++                self.assertEqual(self.app.review_store.get("frame_a").revision, 0)
++
++        malformed = self.client.patch(
++            "/api/records/frame_a", data="{", content_type="application/json"
++        )
++        self.assertEqual(malformed.status_code, 400)
++        self.assertEqual(malformed.get_json()["error"], "invalid_json")
++
++    def test_revision_conflict_and_record_validation_do_not_mutate(self):
++        state = (self.work_root / "annotation_state.json").read_bytes()
++        stale = self.patch("frame_a", {"revision": 9, "notes": "stale"})
++        self.assertEqual(stale.status_code, 409)
++        self.assertEqual(stale.get_json()["error"], "revision_conflict")
++        self.assertEqual((self.work_root / "annotation_state.json").read_bytes(), state)
++
++        invalid = self.patch("frame_a", {"revision": 0, "status": "positive", "anchors": []})
++        self.assertEqual(invalid.status_code, 400)
++        self.assertEqual(invalid.get_json()["error"], "validation_failed")
++        self.assertEqual((self.work_root / "annotation_state.json").read_bytes(), state)
++
++    def test_candidate_change_is_409_and_save_or_audit_failures_are_stable_500(self):
++        original = self.frames / "frame_a.jpg"
++        original.write_bytes(original.read_bytes() + b"changed")
++        changed = self.patch("frame_a", {"revision": 0, "notes": "no"})
++        self.assertEqual(changed.status_code, 409)
++        self.assertEqual(changed.get_json(), {"error": "candidate_changed"})
++
++        # Restore exact canonical bytes and exercise both persistence failure paths.
++        original.write_bytes(original.read_bytes()[:-7])
++        with mock.patch.object(self.app.review_store, "_write_state", side_effect=OSError("private path")):
++            failed = self.patch("frame_a", {"revision": 0, "notes": "no"})
++        self.assertEqual(failed.status_code, 500)
++        self.assertEqual(failed.get_json(), {"error": "save_failed"})
++        self.assertNotIn(str(self.root), failed.get_data(as_text=True))
++
++        with mock.patch.object(self.app.review_store, "_append_history", side_effect=OSError("private path")):
++            audit = self.patch("frame_b", {"revision": 0, "notes": "saved before audit"})
++        self.assertEqual(audit.status_code, 500)
++        self.assertEqual(audit.get_json(), {"error": "save_failed"})
++        self.assertNotIn(str(self.root), audit.get_data(as_text=True))
++
++    def test_client_actor_cannot_choose_a_nonhuman_origin(self):
++        response = self.patch(
++            "frame_a",
++            {
++                "revision": 0,
++                "actor": "model",
++                "status": "positive",
++                "anchors": FINAL_ANCHORS,
++            },
++        )
++        self.assertEqual(response.status_code, 200)
++        event = json.loads(
++            (self.work_root / "annotation_history.jsonl").read_text(encoding="utf-8").splitlines()[0]
++        )
++        self.assertEqual(event["actor"], "local_web_reviewer")
++        self.assertEqual(event["origin"], "human")
++
++
++class EnhancedCacheTests(ReviewServiceFixture):
++    def test_enhanced_cache_generation_reuse_and_candidate_tree_read_only(self):
++        before = self.candidate_snapshot()
++        with mock.patch(
++            "low_light_dataset.review_service.enhance_low_light",
++            side_effect=self.fake_enhance,
++        ) as enhance:
++            first = self.client.get("/media/enhanced/frame_a.jpg")
++            second = self.client.get("/media/enhanced/frame_a.jpg")
++        self.assertEqual(first.status_code, 200)
++        self.assertEqual(second.data, first.data)
++        self.assertEqual(enhance.call_count, 1)
++        self.assertEqual(self.candidate_snapshot(), before)
++
++        cache = self.work_root / "enhanced_preview_cache"
++        sidecar = json.loads((cache / "frame_a.json").read_text(encoding="utf-8"))
++        self.assertEqual(sidecar["schema_version"], 1)
++        self.assertEqual(sidecar["source_sha256"], self.manifest_rows[1]["image_sha256"])
++        self.assertEqual(sidecar["output"]["width"], 640)
++        self.assertEqual(sidecar["output"]["height"], 480)
++        self.assertEqual(sidecar["output"]["sha256"], hashlib.sha256(first.data).hexdigest())
++        self.assertFalse(list(cache.glob(".*.tmp")))
++
++    def test_corrupt_or_stale_cache_and_sidecar_regenerate(self):
++        cache = self.work_root / "enhanced_preview_cache"
++        scenarios = ("corrupt_jpeg", "bad_json", "stale_hash", "bad_dimensions")
++        for scenario in scenarios:
++            with self.subTest(scenario=scenario):
++                with mock.patch(
++                    "low_light_dataset.review_service.enhance_low_light",
++                    side_effect=self.fake_enhance,
++                ) as enhance:
++                    self.assertEqual(self.client.get("/media/enhanced/frame_b.jpg").status_code, 200)
++                    jpeg = cache / "frame_b.jpg"
++                    sidecar_path = cache / "frame_b.json"
++                    if scenario == "corrupt_jpeg":
++                        jpeg.write_bytes(b"not a jpeg")
++                    elif scenario == "bad_json":
++                        sidecar_path.write_text("{", encoding="utf-8")
++                    elif scenario == "stale_hash":
++                        metadata = json.loads(sidecar_path.read_text(encoding="utf-8"))
++                        metadata["source_sha256"] = "0" * 64
++                        sidecar_path.write_text(json.dumps(metadata), encoding="utf-8")
++                    else:
++                        small = np.zeros((240, 320, 3), dtype=np.uint8)
++                        save_jpeg(jpeg, small)
++                        metadata = json.loads(sidecar_path.read_text(encoding="utf-8"))
++                        metadata["output"]["width"] = 320
++                        metadata["output"]["height"] = 240
++                        metadata["output"]["sha256"] = hashlib.sha256(jpeg.read_bytes()).hexdigest()
++                        sidecar_path.write_text(json.dumps(metadata), encoding="utf-8")
++                    self.assertEqual(self.client.get("/media/enhanced/frame_b.jpg").status_code, 200)
++                self.assertEqual(enhance.call_count, 2)
++                for path in (cache / "frame_b.jpg", cache / "frame_b.json"):
++                    path.unlink()
++
++    def test_cache_root_symlink_escape_is_rejected_without_outside_writes(self):
++        outside = self.root / "outside-cache"
++        outside.mkdir()
++        cache_root = self.work_root / "enhanced_preview_cache"
++        try:
++            cache_root.symlink_to(outside, target_is_directory=True)
++        except OSError as exc:
++            self.skipTest(f"directory symlink creation unavailable: {exc}")
++
++        before = {
++            path.relative_to(outside).as_posix(): path.read_bytes()
++            for path in outside.rglob("*")
++            if path.is_file()
++        }
++        with mock.patch(
++            "low_light_dataset.review_service.enhance_low_light",
++            side_effect=AssertionError("enhancement must not run through cache link"),
++        ) as enhance:
++            response = self.client.get("/media/enhanced/frame_a.jpg")
++
++        self.assertEqual(response.status_code, 500)
++        self.assertEqual(response.get_json(), {"error": "save_failed"})
++        enhance.assert_not_called()
++        after = {
++            path.relative_to(outside).as_posix(): path.read_bytes()
++            for path in outside.rglob("*")
++            if path.is_file()
++        }
++        self.assertEqual(after, before)
++
++    def test_cache_file_symlink_escape_is_rejected_before_outside_read(self):
++        with mock.patch(
++            "low_light_dataset.review_service.enhance_low_light",
++            side_effect=self.fake_enhance,
++        ):
++            generated = self.client.get("/media/enhanced/frame_a.jpg")
++        self.assertEqual(generated.status_code, 200)
++
++        cache_path = self.work_root / "enhanced_preview_cache" / "frame_a.jpg"
++        outside = self.root / "outside-preview.jpg"
++        outside.write_bytes(cache_path.read_bytes())
++        cache_path.unlink()
++        try:
++            cache_path.symlink_to(outside)
++        except OSError as exc:
++            self.skipTest(f"file symlink creation unavailable: {exc}")
++
++        outside_before = outside.read_bytes()
++        with mock.patch(
++            "low_light_dataset.review_service.enhance_low_light",
++            side_effect=AssertionError("enhancement must not follow cache link"),
++        ) as enhance:
++            response = self.client.get("/media/enhanced/frame_a.jpg")
++
++        self.assertEqual(response.status_code, 500)
++        self.assertEqual(response.get_json(), {"error": "save_failed"})
++        enhance.assert_not_called()
++        self.assertEqual(outside.read_bytes(), outside_before)
++
++
++class PortTests(unittest.TestCase):
++    def test_occupied_start_falls_back_and_returned_probe_socket_is_closed(self):
++        occupied = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++        occupied.bind(("127.0.0.1", 0))
++        occupied.listen(1)
++        start = occupied.getsockname()[1]
++        try:
++            port = find_available_port(start=start, end=start + 1)
++            self.assertEqual(port, start + 1)
++            reusable = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++            try:
++                reusable.bind(("127.0.0.1", port))
++            finally:
++                reusable.close()
++        finally:
++            occupied.close()
++
++    def test_occupied_8765_returns_8766_when_8766_is_available(self):
++        occupied = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++        try:
++            occupied.bind(("127.0.0.1", 8765))
++            occupied.listen(1)
++        except OSError:
++            occupied.close()
++            self.skipTest("port 8765 is already occupied by an external process")
++        try:
++            probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++            try:
++                probe.bind(("127.0.0.1", 8766))
++            except OSError:
++                self.skipTest("port 8766 is already occupied by an external process")
++            finally:
++                probe.close()
++            self.assertEqual(find_available_port(), 8766)
++        finally:
++            occupied.close()
++
++    def test_fully_occupied_range_has_stable_error(self):
++        first = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++        first.bind(("127.0.0.1", 0))
++        first.listen(1)
++        port = first.getsockname()[1]
++        try:
++            with self.assertRaisesRegex(RuntimeError, f"^no_loopback_port_available_{port}_{port}$"):
++                find_available_port(start=port, end=port)
++        finally:
++            first.close()
++
++    def test_nonliteral_hosts_and_invalid_bounds_reject(self):
++        for host in ("localhost", "0.0.0.0", "::1", "127.0.0.01", " 127.0.0.1"):
++            with self.subTest(host=host), self.assertRaises(ValueError):
++                find_available_port(host=host)
++        for start, end in ((0, 1), (1, 65536), (2, 1), (True, 2), (1, False)):
++            with self.subTest(start=start, end=end), self.assertRaises(ValueError):
++                find_available_port(start=start, end=end)
++
++
++if __name__ == "__main__":
++    unittest.main()

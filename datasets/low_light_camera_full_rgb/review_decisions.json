@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "decisions": {
+    "lowlight_camera_full_rgb_t000000": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000005": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000010": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000015": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000020": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000025": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000030": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 300, "x": 205}, {"y": 330, "x": 210}, {"y": 360, "x": 207}, {"y": 395, "x": 205}]
+    },
+    "lowlight_camera_full_rgb_t000035": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000040": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000045": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000050": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000055": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000060": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000065": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000070": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000075": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000080": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000085": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 405}, {"y": 320, "x": 370}, {"y": 360, "x": 330}, {"y": 420, "x": 285}, {"y": 479, "x": 255}]
+    },
+    "lowlight_camera_full_rgb_t000090": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000095": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000100": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000105": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000110": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000115": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 280, "x": 310}, {"y": 310, "x": 335}, {"y": 360, "x": 350}, {"y": 420, "x": 345}, {"y": 479, "x": 340}]
+    },
+    "lowlight_camera_full_rgb_t000120": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 280, "x": 305}, {"y": 310, "x": 335}, {"y": 360, "x": 350}, {"y": 420, "x": 350}, {"y": 479, "x": 345}]
+    },
+    "lowlight_camera_full_rgb_t000125": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 280, "x": 310}, {"y": 310, "x": 330}, {"y": 360, "x": 345}, {"y": 420, "x": 355}, {"y": 479, "x": 350}]
+    },
+    "lowlight_camera_full_rgb_t000130": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 280, "x": 315}, {"y": 310, "x": 335}, {"y": 360, "x": 345}, {"y": 420, "x": 350}, {"y": 479, "x": 345}]
+    },
+    "lowlight_camera_full_rgb_t000135": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 355}, {"y": 320, "x": 335}, {"y": 360, "x": 315}, {"y": 420, "x": 285}, {"y": 479, "x": 270}]
+    },
+    "lowlight_camera_full_rgb_t000140": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 370}, {"y": 320, "x": 350}, {"y": 360, "x": 325}, {"y": 420, "x": 300}, {"y": 479, "x": 290}]
+    },
+    "lowlight_camera_full_rgb_t000145": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 385}, {"y": 320, "x": 355}, {"y": 360, "x": 315}, {"y": 420, "x": 270}, {"y": 479, "x": 245}]
+    },
+    "lowlight_camera_full_rgb_t000150": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 390}, {"y": 320, "x": 365}, {"y": 360, "x": 330}, {"y": 420, "x": 295}, {"y": 479, "x": 275}]
+    },
+    "lowlight_camera_full_rgb_t000155": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 440}, {"y": 320, "x": 420}, {"y": 360, "x": 395}, {"y": 420, "x": 375}, {"y": 479, "x": 360}]
+    },
+    "lowlight_camera_full_rgb_t000160": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 485}, {"y": 320, "x": 465}, {"y": 360, "x": 440}, {"y": 420, "x": 410}, {"y": 479, "x": 395}]
+    },
+    "lowlight_camera_full_rgb_t000165": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 315, "x": 350}, {"y": 360, "x": 320}, {"y": 420, "x": 280}, {"y": 479, "x": 250}]
+    },
+    "lowlight_camera_full_rgb_t000170": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 300, "x": 455}, {"y": 340, "x": 440}, {"y": 380, "x": 420}, {"y": 430, "x": 390}, {"y": 479, "x": 365}]
+    },
+    "lowlight_camera_full_rgb_t000175": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 275, "x": 475}, {"y": 310, "x": 455}, {"y": 360, "x": 430}, {"y": 420, "x": 400}, {"y": 479, "x": 380}]
+    },
+    "lowlight_camera_full_rgb_t000180": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 270, "x": 420}, {"y": 310, "x": 400}, {"y": 360, "x": 380}, {"y": 420, "x": 365}, {"y": 479, "x": 355}]
+    },
+    "lowlight_camera_full_rgb_t000185": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 400}, {"y": 320, "x": 375}, {"y": 360, "x": 355}, {"y": 420, "x": 340}, {"y": 479, "x": 330}]
+    },
+    "lowlight_camera_full_rgb_t000190": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 290, "x": 505}, {"y": 320, "x": 480}, {"y": 360, "x": 450}, {"y": 420, "x": 425}, {"y": 479, "x": 410}]
+    },
+    "lowlight_camera_full_rgb_t000195": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 345}, {"y": 320, "x": 330}, {"y": 360, "x": 320}, {"y": 420, "x": 310}, {"y": 479, "x": 300}]
+    },
+    "lowlight_camera_full_rgb_t000200": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 285, "x": 370}, {"y": 320, "x": 350}, {"y": 360, "x": 335}, {"y": 420, "x": 320}, {"y": 479, "x": 310}]
+    },
+    "lowlight_camera_full_rgb_t000205": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 270, "x": 175}, {"y": 290, "x": 230}, {"y": 310, "x": 300}, {"y": 335, "x": 385}, {"y": 380, "x": 370}, {"y": 430, "x": 355}, {"y": 479, "x": 345}]
+    },
+    "lowlight_camera_full_rgb_t000210": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 265, "x": 150}, {"y": 290, "x": 220}, {"y": 310, "x": 290}, {"y": 335, "x": 360}, {"y": 380, "x": 405}, {"y": 430, "x": 430}, {"y": 479, "x": 440}]
+    },
+    "lowlight_camera_full_rgb_t000215": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 300, "x": 50}, {"y": 330, "x": 120}, {"y": 360, "x": 185}, {"y": 420, "x": 250}, {"y": 479, "x": 290}]
+    },
+    "lowlight_camera_full_rgb_t000220": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 310, "x": 5}, {"y": 340, "x": 75}, {"y": 380, "x": 145}, {"y": 420, "x": 205}, {"y": 479, "x": 260}]
+    },
+    "lowlight_camera_full_rgb_t000225": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 420, "x": 5}, {"y": 450, "x": 20}, {"y": 479, "x": 40}]
+    },
+    "lowlight_camera_full_rgb_t000230": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 400, "x": 5}, {"y": 440, "x": 45}, {"y": 479, "x": 80}]
+    },
+    "lowlight_camera_full_rgb_t000235": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 290, "x": 10}, {"y": 330, "x": 20}, {"y": 380, "x": 35}, {"y": 430, "x": 55}, {"y": 479, "x": 75}]
+    },
+    "lowlight_camera_full_rgb_t000240": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000245": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000250": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000255": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000260": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 300, "x": 470}, {"y": 330, "x": 430}, {"y": 360, "x": 365}, {"y": 390, "x": 325}, {"y": 430, "x": 290}, {"y": 479, "x": 260}]
+    },
+    "lowlight_camera_full_rgb_t000265": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 300, "x": 470}, {"y": 330, "x": 440}, {"y": 360, "x": 375}, {"y": 390, "x": 315}, {"y": 430, "x": 245}, {"y": 479, "x": 190}]
+    },
+    "lowlight_camera_full_rgb_t000270": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000275": {"approved": true, "hose_visible": true},
+    "lowlight_camera_full_rgb_t000280": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 350, "x": 510}, {"y": 390, "x": 495}, {"y": 430, "x": 470}, {"y": 479, "x": 445}]
+    },
+    "lowlight_camera_full_rgb_t000285": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 370, "x": 350}, {"y": 400, "x": 350}, {"y": 440, "x": 335}, {"y": 479, "x": 320}]
+    },
+    "lowlight_camera_full_rgb_t000290": {
+      "approved": true, "hose_visible": true,
+      "anchors": [{"y": 420, "x": 195}, {"y": 450, "x": 185}, {"y": 479, "x": 175}]
+    },
+    "lowlight_camera_full_rgb_t000295": {"approved": true, "hose_visible": false}
+  }
+}

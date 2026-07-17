@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "video": "E:\\New_DOTEK\\数据\\camera_full_rgb.mp4",
+  "video_sha256": "73ce8039f406e555a60397e63944a64a19e49df3215d6386a53186867d77bf2f",
+  "fps": 22.128,
+  "frame_count": 8511,
+  "video_duration_seconds": 384.62581344902384,
+  "requested_duration_seconds": 300.0,
+  "analysis_interval_seconds": 0.25,
+  "analysis_timestamp_count": 1200,
+  "rejected_decode_timestamps": [],
+  "candidate_count": 388,
+  "base_count": 300,
+  "event_count": 88,
+  "event_reason_counts": {
+    "lighting_change": 1,
+    "motion": 50,
+    "one_second_base": 300,
+    "scene_change": 37
+  },
+  "distributions": {
+    "frame_difference": {
+      "p05": 0.6994609564542771,
+      "p50": 5.366822719573975,
+      "p95": 13.615007829666137
+    },
+    "optical_flow": {
+      "p05": 0.034030511416494845,
+      "p50": 1.0201814770698547,
+      "p95": 4.392162942886352
+    },
+    "brightness_mean": {
+      "p05": 69.29966910807292,
+      "p50": 82.62501627604166,
+      "p95": 123.43972721354167
+    },
+    "brightness_delta": {
+      "p05": 0.014396972656258812,
+      "p50": 0.25519694010416316,
+      "p95": 1.934993164062492
+    },
+    "dark_fraction": {
+      "p05": 0.052110677083333334,
+      "p50": 0.35756510416666665,
+      "p95": 0.5363697916666667
+    },
+    "laplacian_variance": {
+      "p05": 145.8844752152994,
+      "p50": 260.28593323108885,
+      "p95": 589.696239774685
+    }
+  }
+}

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>水带标注口径确认</title>
+  <style>
+    :root { color-scheme: light dark; font-family: "Microsoft YaHei", sans-serif; }
+    body { margin: 0; background: #111827; color: #f3f4f6; }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; }
+    h1 { margin: 0 0 8px; font-size: 27px; }
+    .lead { margin: 0 0 22px; color: #cbd5e1; }
+    .frames { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    figure { margin: 0; border: 1px solid #334155; border-radius: 12px; overflow: hidden; background: #1e293b; }
+    figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #020617; }
+    figcaption { padding: 10px 12px 12px; color: #cbd5e1; }
+    .question { margin-top: 24px; padding: 18px; border: 1px solid #475569; border-radius: 12px; background: #1e293b; }
+    .question h2 { margin: 0 0 8px; font-size: 20px; }
+    .question p { color: #cbd5e1; }
+    .choices { display: grid; gap: 10px; }
+    button { width: 100%; padding: 14px; border: 1px solid #475569; border-radius: 9px; background: #0f172a; color: #f8fafc; text-align: left; cursor: pointer; font: inherit; }
+    button:hover { border-color: #38bdf8; }
+    button.selected { border-color: #22c55e; background: #14532d; }
+    button strong { display: block; margin-bottom: 4px; }
+    .status { min-height: 24px; margin: 12px 0 0; color: #86efac; }
+    @media (max-width: 720px) { .frames { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>先统一：机器人要跟随哪一条“水带”</h1>
+    <p class="lead">这些都来自当前 388 张候选集。后半段同时出现红色/棕色扁平水带、绿色水带和黑色线缆，必须先确定唯一标注目标。</p>
+
+    <section class="frames" aria-label="真实候选帧对比">
+      <figure>
+        <img src="clear-red-hose.jpg" alt="0秒画面，红色扁平水带从画面下方延伸">
+        <figcaption>0.0 秒：红色扁平水带清晰，目标基本无歧义。</figcaption>
+      </figure>
+      <figure>
+        <img src="dark-moving-hose.jpg" alt="162.5秒低照度运动画面，棕红色水带延伸">
+        <figcaption>162.5 秒：低照度和运动下，水带颜色变暗。</figcaption>
+      </figure>
+      <figure>
+        <img src="red-and-green.jpg" alt="270秒画面，红色扁平水带与绿色水带同时出现">
+        <figcaption>270.0 秒：红色/棕色扁平水带与绿色水带同时出现。</figcaption>
+      </figure>
+      <figure>
+        <img src="green-and-cables.jpg" alt="295.5秒画面，绿色水带与黑色线缆同时出现">
+        <figcaption>295.5 秒：绿色水带、黑色线缆和收卷设备同时出现。</figcaption>
+      </figure>
+    </section>
+
+    <section class="question">
+      <h2>当画面中出现多条软管或线缆时，哪一种是训练标签的唯一目标？</h2>
+      <p>点击一个选项作视觉记录，并在 Codex 对话中回复 A、B 或 C。</p>
+      <div class="choices">
+        <button type="button" data-choice="A"><strong>A（推荐）跟机器人实际收卷的目标水带</strong>不按颜色判断；沿与收卷机构连接、机器人应跟随的那一条水带标中心线，其他水带和线缆作为困难干扰物。</button>
+        <button type="button" data-choice="B"><strong>B 只标红色/棕色扁平水带</strong>绿色软管无论是否连接设备都视为负样本或干扰物。</button>
+        <button type="button" data-choice="C"><strong>C 画面中所有水带都属于目标</strong>但当前模型只能表达单条中心线，因此还需另定多目标取舍规则。</button>
+      </div>
+      <p class="status" id="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script>
+    const status = document.getElementById('status');
+    document.querySelectorAll('button[data-choice]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('button[data-choice]').forEach((item) => item.classList.remove('selected'));
+        button.classList.add('selected');
+        status.textContent = `已选择 ${button.dataset.choice}，请回到 Codex 对话中回复该字母。`;
+      });
+    });
+  </script>
+</body>
+</html>

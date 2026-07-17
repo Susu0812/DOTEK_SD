@@ -1,0 +1,41 @@
+{
+  "device": "NVIDIA GeForce GTX 1050",
+  "device_total_memory_mib": 2047.81,
+  "safety_fraction": 0.9,
+  "candidates": [
+    {
+      "batch_size": 8,
+      "trials": [
+        true,
+        true
+      ],
+      "peak_allocated_mib": [
+        796.65,
+        877.47
+      ],
+      "peak_reserved_mib": [
+        886.0,
+        958.0
+      ],
+      "error": null
+    }
+  ],
+  "selected": {
+    "batch_size": 8,
+    "trials": [
+      true,
+      true
+    ],
+    "peak_allocated_mib": [
+      796.65,
+      877.47
+    ],
+    "peak_reserved_mib": [
+      886.0,
+      958.0
+    ],
+    "error": null,
+    "accumulation_steps": 8,
+    "effective_batch_size": 64
+  }
+}

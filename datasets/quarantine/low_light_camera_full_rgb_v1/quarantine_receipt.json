@@ -1,0 +1,622 @@
+{
+  "schema_version": 1,
+  "completed_at_utc": "2026-07-16T13:52:40.620701+00:00",
+  "dataset_root": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata",
+  "bundle_root": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\low_light_camera_full_rgb",
+  "merge_receipt": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\low_light_camera_full_rgb\\merge_receipt.json",
+  "merge_receipt_sha256": "b8e7a8e175ff429f868c346816237164cd61f55ab7c4935f39342d120d44b130",
+  "before_counts": {
+    "train_images": 4918,
+    "train_labels": 4918,
+    "test_images": 867,
+    "test_labels": 867
+  },
+  "after_counts": {
+    "train_images": 4858,
+    "train_labels": 4858,
+    "test_images": 867,
+    "test_labels": 867
+  },
+  "files": [
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000000.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000000.jpg",
+      "sha256": "e701f1c6e77a6ed1ae4ff3a9d8f855235933769d863406fb3d84518bea05996b"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000005.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000005.jpg",
+      "sha256": "b5502e1d6ffaeeab82eeb332c2a4a6a157a32ded36783f118fa882863beb1456"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000010.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000010.jpg",
+      "sha256": "ab840037ff9ca92c7f7d2bea00465a729e185a0e80fe69417d8fcc3cb14dbabf"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000015.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000015.jpg",
+      "sha256": "9f7903ec92159df0bba904ebd1fdaec15de82129f415ff33a779b2e6486a41ea"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000020.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000020.jpg",
+      "sha256": "8fa5c9cef4e4b67650522dc050f5e3292022d95777636c009eacb53a62b725b8"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000025.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000025.jpg",
+      "sha256": "d9f6b118e80290009889c70b0e61ebeefcf91015db0fb0cdcb396261aa0d7daa"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000030.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000030.jpg",
+      "sha256": "4564754eca1f8989e56c3a0be0fa4b8c1bba6b7f83b7b2936982018037c3e222"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000035.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000035.jpg",
+      "sha256": "d7ffc7f87bb651e4eeeac59e6dd6918fbdda1a490dcc1c948bcfcc48e7258790"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000040.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000040.jpg",
+      "sha256": "c44abba4898152ebf510119a3442db06533f3943e8b797006cc71201d0449732"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000045.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000045.jpg",
+      "sha256": "167443fff0cd73e34c3a2add78b4e52757403d36a601f250466cf1c0b939285f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000050.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000050.jpg",
+      "sha256": "60e85adf70a3cb3d2566a0cb5b294d5be9d9d02a3eb29c4bbd62998bcfe99c93"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000055.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000055.jpg",
+      "sha256": "e5ce17f4796de183921673729c9559d48bedf570741f30c6e02ce2a3f9db9c2d"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000060.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000060.jpg",
+      "sha256": "a8669d227f371db121dc917d7bf64d1634557332843a243e4f5f8607f907a4fc"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000065.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000065.jpg",
+      "sha256": "a9560b9921e8d94de867748df92a1cbaa1492cbd6e510ff74db7df254a65ba71"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000070.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000070.jpg",
+      "sha256": "b0cdc65acd1a3b8f78155e676314e2072e15d930e6d2c6ce08008217916f36f6"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000075.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000075.jpg",
+      "sha256": "566b620685b4ee41615fcebe60428d5e779ab7c3bb2b9cb427b63fa09922d4c7"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000080.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000080.jpg",
+      "sha256": "290721017599bc2bc90006bcd8d409ffdf636915f4bb151cff44071295b8b570"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000085.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000085.jpg",
+      "sha256": "54cb04c05cf2cba16bd9be531dbad8292a5b9beb7582178f8cf81a3796032845"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000090.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000090.jpg",
+      "sha256": "28c212aef07e4d8a5d4033b9e80b234be9aec10ada584ca2af33db03996bda5c"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000095.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000095.jpg",
+      "sha256": "6f34e50e2463e399d307dfcddfd66ad4029910f0504fa61d8f5ceba9810de63b"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000100.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000100.jpg",
+      "sha256": "a04d41ec3aee0b3b9135a26c6d91d72099fbea34b4683ba662ab40fd0473b3cc"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000105.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000105.jpg",
+      "sha256": "4c7e7b77e29bcafac3850189967725d83b1967755608665aec02cc4850076aa8"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000110.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000110.jpg",
+      "sha256": "38dc00f75a962cdbdc0a34d0dc768463773b49893dca4352fc709f3471182317"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000115.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000115.jpg",
+      "sha256": "998cd191d1a2b10dc04c27804de2d5997a12dac199cd04ca273d3d0e3b7e838e"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000120.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000120.jpg",
+      "sha256": "56743390196870d7ec10e715c4128ab0b6af8b965694d78d87b32ccc3927266d"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000125.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000125.jpg",
+      "sha256": "1e21b33fd7657ae8fe8cb53447ea4f645c917a9bbe7157e247d8b0afc9ce785c"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000130.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000130.jpg",
+      "sha256": "95a9728fdd677e6ee1b6f00472c40060de34991828fb02f5cabd5d56a20e8492"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000135.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000135.jpg",
+      "sha256": "7d65a5ecf0a2fecb41bda17ecdd24e972d7d99946b201cfcdd92b7eb41ffb8db"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000140.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000140.jpg",
+      "sha256": "a97de81d9417b12c37cbd6edebeeb1f897270228389bed3fdd8d3b72c97a5f0f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000145.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000145.jpg",
+      "sha256": "985f1ff03af69ec47b131fb091ac48c3dbfe341df0f93512464d4869654845d3"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000150.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000150.jpg",
+      "sha256": "4fbffaffa00478cc65b0373aa8ba294201dc6175b371aaffe5c2c558a6ee6b50"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000155.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000155.jpg",
+      "sha256": "f4ac1523bc9d11d71069634875a8826c54242ce7540824fbf7e0a5efc7a72b4d"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000160.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000160.jpg",
+      "sha256": "aeb6d4316630b394c8175b4c0385ba61ca1baf859897f80012a9f05034768236"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000165.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000165.jpg",
+      "sha256": "9bba7521a08ec4d8e4aecf1e6cda2ae17def37667712500145263571adacf719"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000170.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000170.jpg",
+      "sha256": "c5efbd96e732e88bb3c8a9628f882d1003cd7aa6c3bc1413512847189be21e9f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000175.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000175.jpg",
+      "sha256": "f348ee8043ce674c0f3dece0b4905695a9bf241a43e059f5e2690aa1b2c628b7"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000180.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000180.jpg",
+      "sha256": "817f6b35037f3ad27ab341d79bc38cedd070c4dccfaea54522a010cc682f2861"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000185.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000185.jpg",
+      "sha256": "1e0a7eb4036915984c15a0ff5b5a56ea48a4dbac8b80e092d5fd4a329a59396e"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000190.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000190.jpg",
+      "sha256": "44efa68e265e082e5e6e00e9d0576bc29de84b47bb87d6da98e7c965bd70b256"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000195.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000195.jpg",
+      "sha256": "8086f133d5dd52944d41511a4a2e587db438409b725a1ec184e23cc2a3989d99"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000200.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000200.jpg",
+      "sha256": "6b398840cd2c3dd8349b062cd8c28de6ef6eece0eb81c7375db48158ea6c3a5a"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000205.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000205.jpg",
+      "sha256": "5104827b1005a4044cd3df0e85bb4af1aab0d985b435e7f07f200ebc25843fb5"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000210.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000210.jpg",
+      "sha256": "d723403c7cc4847b930c5fb41e4254aef9a3d732db349de15dfb966e31db6cd7"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000215.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000215.jpg",
+      "sha256": "7ad05d968eb1e49182b4f48f4d17b66412e91225423789e87c72a014d86e6963"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000220.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000220.jpg",
+      "sha256": "26bcbcc05424dc52c85251633359364f0ec3c3a4c4598d54b4f5f37e3c189289"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000225.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000225.jpg",
+      "sha256": "5c4905c5e5f1886ad8ea3a0ac187012e63c773bb427713ae8ee931886cb6b9ae"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000230.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000230.jpg",
+      "sha256": "094587cfc495a1da1039ebe39579c5102c80ddb5f55310642b85fe1d70a646fe"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000235.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000235.jpg",
+      "sha256": "b537d704ef81bd8d3ffe2c3a3df349a4744e081f58e42652cc9b0f68c3809112"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000240.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000240.jpg",
+      "sha256": "21634745457ca0e87a3073afdf71515272f4d5af83905a5033be4fa4c1cba72d"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000245.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000245.jpg",
+      "sha256": "75e24ece0a66e4ec7d0e7dd980e7a3bfef43ee2b3e56864ee956e3977f2bbedf"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000250.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000250.jpg",
+      "sha256": "9c8d50f4176232fb5f5b3a68fa0a9e732cd621fc04afb8dfe4603f71977ccb7c"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000255.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000255.jpg",
+      "sha256": "25f95cf8c00566e7fea15499ac368b76add9dbd7ab8f9f2ecd6ba98cb1c86d67"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000260.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000260.jpg",
+      "sha256": "0f3085d31a69c25e0eaec80dcd7f23f55d5da8e4942ea5065ee8801340c143a6"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000265.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000265.jpg",
+      "sha256": "2f034b279e1c44d5e1b04f2f0cde17500c287959cd34cc0113ad28d78079a8c0"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000270.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000270.jpg",
+      "sha256": "3fb6079cb3505e91bf9a7dd848e83a49d0059138d4f5274ccf31bdeb2749f31a"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000275.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000275.jpg",
+      "sha256": "b21fba4472ddd8fccafd563cff00eabbd987b735be217efcb91a77114d3b3ac3"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000280.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000280.jpg",
+      "sha256": "001c5f2cb4b752b447484978c89b5369009cf0a8f8602553f7f5e951f0199e3b"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000285.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000285.jpg",
+      "sha256": "15587db1c497dad395065c2918a1ce1452cf71b7d5bd60762c760e6c74f79840"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000290.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000290.jpg",
+      "sha256": "b360ff6fe012a9a26c46993a137dca654f52875cb55dfd07b4760182f5cc7951"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\pic\\lowlight_camera_full_rgb_t000295.jpg",
+      "relative_destination": "train_pic/lowlight_camera_full_rgb_t000295.jpg",
+      "sha256": "db03709808ec78509d2787364ac782a1a6969d74501dfc8a26684974468f167f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000000.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000000.png",
+      "sha256": "1d79ce4ebd864bb31f7a3c276764e508a11e8f722afaa3f1565f7b419ba5c0e5"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000005.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000005.png",
+      "sha256": "3b40e1830db09ae39d7bc1b92a53a4af0fbe74900428591fae3401d57ab26297"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000010.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000010.png",
+      "sha256": "a8bde9836c0956b94bbe0e3a8b49e96eac93d73475f86316bfead9f4c1a8c191"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000015.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000015.png",
+      "sha256": "e97cceb539b15a46ab85b673cc87480193c8e4856644f0a61625efdf43499565"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000020.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000020.png",
+      "sha256": "06ee2bade06de4c379ad97d24de1fc2cea1299f7fa2e7cdc5623a718228dcd13"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000025.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000025.png",
+      "sha256": "df0e778903ab5294b4c662e15df68856ff6007ed02b80c144e2228c025abb62c"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000030.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000030.png",
+      "sha256": "e428a245e657d4e07bd6dc3a6244bae3287c89f5b4cebb726bb996e920380068"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000035.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000035.png",
+      "sha256": "43a75c42fc7d618c98f54a59f72ae811e47b34db1286e23063fd2b10799b2f9f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000040.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000040.png",
+      "sha256": "7d5f6a1dd54e2cac9053152963a98140271fc930b8bb3e6b7da90e70eb89a231"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000045.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000045.png",
+      "sha256": "976f6a03bc62fe26ba5f86c6a9f009c7ef47356d520f13ef1876f307f586901c"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000050.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000050.png",
+      "sha256": "701ff9ecd361b39cf24e14d04aab93b4ee558b5885cc9979bedee5422ec12a65"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000055.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000055.png",
+      "sha256": "19b62a00736a0d1683702ca23069cf835db0f4ebf99d85f8bcc18a8a01c870c5"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000060.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000060.png",
+      "sha256": "b245b5f37e5e75055f93ff8618c72326327e863aaa5eb2632c05c6236affb396"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000065.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000065.png",
+      "sha256": "ddf7b2efae450ee02fbb067048b02b14f9bb7e8e84e1450da09660880c929eec"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000070.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000070.png",
+      "sha256": "4288e08dc64be6e4cb1e57ae6cfe1097db5de0956979ce7ff9565c288f85786e"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000075.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000075.png",
+      "sha256": "742b5a38fcc95ba41a1e58f31100f6fd81fe3d0a9cbca47cb62dda0c8c5b30f4"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000080.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000080.png",
+      "sha256": "90da68a38fed94605ab103d2b6812b6b59664a086091b7636314380ec5a579d0"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000085.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000085.png",
+      "sha256": "9a32a4d5dc571505627d447511f6f357c5519f0f96115069a245f388caa825b9"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000090.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000090.png",
+      "sha256": "2b8e4fcd308475b83dcec4ddad73e3d9b8f9f738448f9badbcb9a0c289ee708e"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000095.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000095.png",
+      "sha256": "cbe2193c8edb9d5e5b60d0f442734432224f710941068e27027b43be198d08fd"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000100.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000100.png",
+      "sha256": "16d513b7fbe05adc49d507572df8b0cb2bc1aebd331a8d2d9ee6a3ba36f1ae0c"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000105.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000105.png",
+      "sha256": "9bcfea3b8c6e81cc524c48acccf5187a3b158f3ce2eb29067cf8f3cafca0446b"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000110.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000110.png",
+      "sha256": "1f2bb8c807e3092453ae88fe73a353b3ce08e88ad0d53bf7b11fba41b5a888bf"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000115.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000115.png",
+      "sha256": "9b3f610545e7bcaeb827e06f8f42ad2be77d65e767b3612a4bdb1ebae0afddf4"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000120.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000120.png",
+      "sha256": "7b1dab4ba36841ed2be14ed72d310761a9c00da7367b765477e9ede4a3df5399"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000125.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000125.png",
+      "sha256": "50e023c84f86c453f71eb21945216c1e33a7793056f552a0e5e1274159151796"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000130.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000130.png",
+      "sha256": "2edce9d6525c4f4a1151a0413ae1db284939346dc26a3e53cc1de2d956350286"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000135.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000135.png",
+      "sha256": "ba0f2d76da4636b052379026afe522a7b2023a304531f64c159dab9f9308acc2"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000140.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000140.png",
+      "sha256": "0a6bf68fb15319426757ae86554e72367309927368352666f5b770d07759a725"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000145.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000145.png",
+      "sha256": "3845126e3d5b26a2f8749ca7ff748ae3a086c6949a7dcfbe99862be08429e77e"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000150.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000150.png",
+      "sha256": "d1a1d2a67eb428f4d05e6c41496a5236925b0bf5abeecdecc2cab7fcb48aabc8"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000155.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000155.png",
+      "sha256": "dc13795bc4a87d4172cb34f7e6742b9976a371bc79718be11e9e220d0ef92239"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000160.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000160.png",
+      "sha256": "cfc7ce95791ab21a1705ef4a9e498c25647b946b4205e7731708518fdaa733b1"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000165.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000165.png",
+      "sha256": "1e82c6a3f5f75a9d3c15d1d47a3d2ee2c83c48318165634f7f939022b392029f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000170.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000170.png",
+      "sha256": "956f883e3174546f0892d7345702b5be26df7f4f67b521a89b1022b66426e628"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000175.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000175.png",
+      "sha256": "546bd9db24bab64af5b948da41f7d3ede093f92f6a34e27de0561f2b8d90273b"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000180.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000180.png",
+      "sha256": "3b1cb7e240886ac5860c85fe816ccf862ba95eb03abb70b7acb145800045711f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000185.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000185.png",
+      "sha256": "8d4dff9ad4f4c7c3cd1d4ec7ab5bb50ebae6aa52c0399d2d92d21120af5a2b29"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000190.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000190.png",
+      "sha256": "f233b0e50a5d3060db93d39c4a432e651c00573fddf3962a6cbe0b2e37f0be64"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000195.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000195.png",
+      "sha256": "8abc4e7f4f82a3912c9ac14efe5673f4f1bfde1a32eb1f62b88ce4b6b74f03b6"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000200.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000200.png",
+      "sha256": "80b5a64de52504d19d6c561d306fb1f9f9f41355af5a044fb5340f54c616a2e2"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000205.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000205.png",
+      "sha256": "dfcaeebb98a76e961c1f592c05ed0bd72c2e462215e9f8a8542e27bdf16a6478"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000210.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000210.png",
+      "sha256": "af60a0d39fb48c111b01f2d5cb322dd0504527609fc17f1ab3dd02c53c4bb1b2"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000215.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000215.png",
+      "sha256": "f8ab92add3e997451840bfbf37c36eaf8beaa104ccd970b04131b221431bc088"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000220.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000220.png",
+      "sha256": "b4a8364c93a6c2767907e028f971174dfdfaed17c4b638ec41b08bffd46b7e84"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000225.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000225.png",
+      "sha256": "8a20c2a0c3618a70b06178e9811353e39a6efdff6a845980b30b2e9bd649d91e"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000230.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000230.png",
+      "sha256": "3e502cb7cacfafa99227a50edf5d328c8b891fa4d491d01746feaf252f7ee893"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000235.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000235.png",
+      "sha256": "a7456beff3c85df008c6ce4f83d2b4bedeabf5e0d2c19ec08c0a12b33fa2e5d0"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000240.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000240.png",
+      "sha256": "d0837087f829fd2704b144af83221cb812d9843ea69a66c4c61f347315d06bf1"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000245.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000245.png",
+      "sha256": "42247bbc254d186d18f7d186a3fcce60f75a51f8085e597fa62516fe4b9a03b9"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000250.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000250.png",
+      "sha256": "991711de3724fb8294ce6ff1e9d81a2f89164e64f5f9a53264e8abfa641ce4f9"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000255.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000255.png",
+      "sha256": "b8c4f44b42fc0346d6c0ff59a76d732b19930dccd5fd7f65a38fca318f1e5cb4"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000260.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000260.png",
+      "sha256": "dd739bba6c4fef19a2c3dca74c064fd33c4be78c65a739f3bf91c8e4e8cfb23f"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000265.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000265.png",
+      "sha256": "3896316237bc8a0d0df39d36ffa45c24759dc94c060df344cf4334847bb5efbb"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000270.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000270.png",
+      "sha256": "68f24fd3ce31b83a96c3db4475fc9e76ffc825fd7a64f1dfb7afa39c794f7dbb"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000275.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000275.png",
+      "sha256": "1b0737edc51b9c803dc26f6efb4de761a0c5f68fc4da6c82b8132531e70ff1d1"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000280.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000280.png",
+      "sha256": "a29e5a3581c31874ccf82b0c3492ff69f393b4123f2ecac480220522b6a8d3ca"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000285.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000285.png",
+      "sha256": "a0789567997935a9ed556c32d3caf88ae47b1fca2151fd8ebb8d901deaa8f7e8"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000290.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000290.png",
+      "sha256": "a1a5cf758de8831ca64db2d98757a3e1ac88635b9462f7e21d33704b1b9fd192"
+    },
+    {
+      "source": "E:\\New_DOTEK\\水带识别项目\\水带识别代码文件\\Ultra-Fast-Lane-Detection-master\\datasets\\newdata\\train\\label\\lowlight_camera_full_rgb_t000295.png",
+      "relative_destination": "train_label/lowlight_camera_full_rgb_t000295.png",
+      "sha256": "136af9d0ad549e0c0cee4161ece2ab0e00dfe309a53124729bcaf5956c76fbe1"
+    }
+  ]
+}

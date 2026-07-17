@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>水带人工复核工作台</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">LOCAL REVIEW WORKBENCH</p>
+      <h1>水带人工复核</h1>
+    </div>
+    <div id="summary-counts" class="summary" aria-live="polite">正在加载汇总…</div>
+  </header>
+
+  <div class="safety-banner" role="note">增强图仅辅助观察，导出始终使用原图</div>
+
+  <main class="workspace">
+    <aside class="queue-panel panel" aria-labelledby="queue-title">
+      <h2 id="queue-title">复核队列</h2>
+      <label for="status-filter">状态</label>
+      <select id="status-filter">
+        <option value="all">全部状态</option>
+        <option value="unreviewed">未复核</option>
+        <option value="needs_second_review">需二次复核</option>
+        <option value="positive">正样本</option>
+        <option value="hard_negative">困难负样本</option>
+        <option value="excluded">排除</option>
+      </select>
+
+      <label for="event-filter">事件</label>
+      <select id="event-filter">
+        <option value="all">全部事件</option>
+        <option value="base">基础采样帧</option>
+        <option value="event">事件采样帧</option>
+      </select>
+
+      <label for="warning-filter">警告</label>
+      <select id="warning-filter">
+        <option value="all">全部</option>
+        <option value="warning">有警告</option>
+        <option value="clean">无警告</option>
+      </select>
+
+      <label for="record-select">按时间排序的记录</label>
+      <select id="record-select" size="12" aria-label="待复核记录"></select>
+    </aside>
+
+    <section class="viewer-panel panel" aria-labelledby="viewer-title">
+      <div class="viewer-heading">
+        <div>
+          <p class="eyebrow">CURRENT FRAME</p>
+          <h2 id="viewer-title"><span id="current-stem">—</span></h2>
+          <p>时间：<time id="current-timestamp">—</time></p>
+        </div>
+        <label class="toggle" for="preview-toggle">
+          <input id="preview-toggle" type="checkbox">
+          显示增强预览
+        </label>
+      </div>
+
+      <div id="canvas-editor" class="canvas-shell">
+        <canvas id="hose-canvas" width="640" height="480" tabindex="0" aria-label="水带中心线锚点编辑画布"></canvas>
+      </div>
+      <p class="legend"><span class="amber-line"></span>模型建议 <span class="red-line"></span>当前人工草稿</p>
+
+      <div class="editor-toolbar" role="toolbar" aria-label="锚点编辑">
+        <button id="undo" type="button">撤销</button>
+        <button id="redo" type="button">重做</button>
+        <button id="clear-anchors" type="button" class="danger-quiet">清空锚点</button>
+      </div>
+
+      <div class="neighbor-strip" aria-label="相邻帧">
+        <article class="neighbor-card">
+          <button id="previous-frame" type="button" aria-label="转到上一帧">上一帧</button>
+          <time id="previous-timestamp">—</time>
+          <img id="previous-thumbnail" alt="上一帧缩略图">
+        </article>
+        <article class="neighbor-card current-card">
+          <span>当前帧</span>
+          <img id="current-thumbnail" alt="当前帧缩略图">
+        </article>
+        <article class="neighbor-card">
+          <button id="next-frame" type="button" aria-label="转到下一帧">下一帧</button>
+          <time id="next-timestamp">—</time>
+          <img id="next-thumbnail" alt="下一帧缩略图">
+        </article>
+      </div>
+    </section>
+
+    <aside class="review-panel panel" aria-labelledby="review-title">
+      <div class="status-row">
+        <h2 id="review-title">人工判定</h2>
+        <span id="revision-indicator" class="revision">修订 —</span>
+      </div>
+
+      <fieldset>
+        <legend>干扰标签（困难负样本至少一项）</legend>
+        <div id="interference-tags" class="check-grid">
+          <label><input type="checkbox" value="floor_seam_or_edge"> 地面接缝或边缘</label>
+          <label><input type="checkbox" value="shadow_or_reflection"> 阴影或反光</label>
+          <label><input type="checkbox" value="cable_or_rope"> 线缆或绳索</label>
+          <label><input type="checkbox" value="non_target_hose"> 非目标水带</label>
+          <label><input type="checkbox" value="elongated_object"> 细长物体</label>
+          <label><input type="checkbox" value="motion_or_low_light_artifact"> 运动或低照伪影</label>
+        </div>
+      </fieldset>
+
+      <label for="exclusion-reason">排除原因</label>
+      <select id="exclusion-reason">
+        <option value="">未选择</option>
+        <option value="near_duplicate">近重复帧</option>
+        <option value="severe_motion_blur">严重运动模糊</option>
+        <option value="severe_exposure_failure">严重曝光失败</option>
+        <option value="ambiguous_target_identity">目标身份不明确</option>
+        <option value="long_occlusion_unknown_path">长遮挡且路径不明</option>
+        <option value="no_training_value">无训练价值</option>
+      </select>
+
+      <label for="notes">复核备注</label>
+      <textarea id="notes" rows="3"></textarea>
+
+      <label for="warnings">警告（每行一项）</label>
+      <textarea id="warnings" rows="2"></textarea>
+
+      <section class="suggestion-box" aria-label="模型预标注上下文">
+        <h3>模型建议（仅供参考）</h3>
+        <p id="suggestion-context">当前记录没有模型建议。</p>
+      </section>
+
+      <p id="classification-preview" class="classification-preview">待选择人工分类</p>
+      <div class="classification-grid">
+        <button id="mark-positive" type="button" class="positive">确认正样本</button>
+        <button id="mark-hard-negative" type="button">确认困难负样本</button>
+        <button id="mark-excluded" type="button">确认排除</button>
+        <button id="mark-needs-review" type="button">标记需二次复核</button>
+      </div>
+
+      <button id="save-status" type="button" class="save-button">保存当前草稿</button>
+      <p id="save-result" class="save-result" aria-live="polite">尚无保存操作</p>
+    </aside>
+  </main>
+</body>
+</html>
